@@ -1,6 +1,6 @@
 # Roadmap and Status
 
-Last updated: 2026-07-07
+Last updated: 2026-07-08
 
 ## Phase 1: Foundations (documents, no code) [COMPLETE]
 
@@ -10,19 +10,19 @@ Last updated: 2026-07-07
 - [x] Scoring criteria v1.0 approved (`scoring-criteria.md`, locked 2026-07-07)
 - [x] Source register filed and PoC scope defined (`finalogic-source-register.md` v1.1)
 
-## Phase 2: Collect (PoC Wave 1) [ACTIVE]
+## Phase 2: Collect (PoC Wave 1) [COMPLETE]
 
 Scope: the four Wave 1 sources in the source register (EBA, ESMA, CERT-EU, CISA KEV). RSS and API only. ENISA was in Wave 1 but moved to Wave 2 as a scraper per D-012 (feed discontinued).
 
-- [ ] Private repo created in Finalogic GitHub organisation, this workspace pushed
+- [x] Private repo created in Finalogic GitHub organisation, this workspace pushed (2026-07-08)
 - [x] Feed URLs verified against live sites for all Wave 1 sources (see docs/feed-verification.md; ENISA feed found discontinued, see D-012)
 - [x] SQLite schema (single items table) (`src/db.py`)
 - [x] Collectors for Wave 1 sources (feedparser / API) (`src/collectors/`: eba, esma, cert_eu, cisa_kev)
 - [x] Deduplication via content hash (`src/db.py:content_hash`, `UNIQUE` constraint, verified no duplicate hashes after two local runs)
 - [x] Health check: items per source per run, zero-item alerting (`src/run.py`; logs items_fetched/items_new per source, non-zero exit on zero-item or failed collectors)
-- [x] GitHub Actions workflow: scheduled runs, DB committed back to repo (`.github/workflows/collect.yml`, not yet run in CI since repo is not yet pushed)
+- [x] GitHub Actions workflow: scheduled runs, DB committed back to repo (`.github/workflows/collect.yml`; verified in CI 2026-07-08, github-actions[bot] committed finalogic.db after a manual run, write-back proven)
 
-## Phase 3: Triage
+## Phase 3: Triage [NEXT]
 
 - [ ] Triage prompt built from taxonomy v1.0 and scoring criteria v1.0 (verbatim rules)
 - [ ] Claude API integration, structured JSON output, confidence flagging (F-1 to F-4)

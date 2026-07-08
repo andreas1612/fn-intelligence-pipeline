@@ -65,6 +65,18 @@ Locked decisions with rationale. Propose changes as new dated entries, do not ed
 **Rationale**: Wave 1 is scoped to RSS/API only. Converting ENISA to a scraper mid-session would break that scope and pull scraper complexity forward before the RSS path is proven. Wave 2 already contains scrapers (CySEC, CBC), so ENISA belongs there. The four remaining Wave 1 sources (EBA, ESMA, CERT-EU, CISA KEV) still exercise the full pipeline across both pillars. AI security coverage is not lost; other AI-security sources remain in the register for Phase 5.
 **Revisit**: If ENISA ships a new subscription or feed mechanism, prefer it over a scraper. TBD until then.
 
+## D-013: CISA KEV per-item URL maps to NVD record (2026-07-07)
+
+**Decision**: For CISA KEV items, the `url` field maps to the per-CVE NVD record page (verified live against nvd.nist.gov), not the KEV catalogue page. The named `source` remains CISA_KEV.
+**Trigger**: KEV entries carry no per-item article URL, only a cveID and metadata. Claude Code flagged this at schema approval.
+**Rationale**: The design requires every item to trace to a specific source. A constant link to the full catalogue (1,600+ entries) would undercut item-level traceability in the digest and later client-facing output. The per-CVE NVD page is stable and specific. Dedup is unaffected: content_hash includes the title, which is unique per CVE.
+
+## D-014: KEV needs a pre-triage relevance filter (Phase 3 note) (2026-07-07)
+
+**Decision (deferred to Phase 3)**: CISA KEV items must pass a cheap pre-triage filter before being sent to the Claude API, rather than sending the whole catalogue.
+**Trigger**: The first pipeline run loaded 1,631 KEV items. Sending all of them through triage would be costly and mostly wasteful, since most are low relevance to the client base.
+**Rationale**: Most KEV entries do not affect Finalogic's clients. A rules-based pre-filter (e.g. match against relevant vendors/products, aligned to Urgent test U-1) keeps API cost proportional to relevance. To be designed at the start of Phase 3.
+
 ## Open items
 
 - TBD: MiCA theme tag. Deferred until item volume justifies it (see taxonomy section 9).
