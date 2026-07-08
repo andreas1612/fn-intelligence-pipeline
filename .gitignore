@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment and secrets (never commit these)
+.env
+*.env
+
+# OS noise
+Thumbs.db
+Desktop.ini
+
+# Note: finalogic.db is intentionally NOT ignored.
+# The database is the system of record and is committed by the Actions workflow (D-008).
