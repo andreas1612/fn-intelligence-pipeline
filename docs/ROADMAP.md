@@ -1,6 +1,6 @@
 # Roadmap and Status
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
 ## Phase 1: Foundations (documents, no code) [COMPLETE]
 
@@ -23,6 +23,8 @@ Scope: the four Wave 1 sources in the source register (EBA, ESMA, CERT-EU, CISA 
 - [x] GitHub Actions workflow: scheduled runs, DB committed back to repo (`.github/workflows/collect.yml`; verified in CI 2026-07-08, github-actions[bot] committed finalogic.db after a manual run, write-back proven)
 
 ## Phase 3: Triage [NEXT]
+
+Design approved 2026-07-09 (D-016 to D-018). Build spec: `docs/phase3-build-spec.md`. Approved prompt: `src/triage_prompt.md`.
 
 - [ ] Triage prompt built from taxonomy v1.0 and scoring criteria v1.0 (verbatim rules)
 - [ ] Claude API integration, structured JSON output, confidence flagging (F-1 to F-4)

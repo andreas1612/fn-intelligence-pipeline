@@ -77,9 +77,33 @@ Locked decisions with rationale. Propose changes as new dated entries, do not ed
 **Trigger**: The first pipeline run loaded 1,631 KEV items. Sending all of them through triage would be costly and mostly wasteful, since most are low relevance to the client base.
 **Rationale**: Most KEV entries do not affect Finalogic's clients. A rules-based pre-filter (e.g. match against relevant vendors/products, aligned to Urgent test U-1) keeps API cost proportional to relevance. To be designed at the start of Phase 3.
 
+## D-015: KEV pre-triage filter skipped for the PoC, supersedes D-014 (2026-07-09)
+
+**Decision**: The CISA KEV pre-triage relevance filter proposed in D-014 is skipped for the PoC. Triage processes new, untriaged items from all four Wave 1 sources equally. The 1,631-item KEV backlog from the first collection run is excluded from triage. Triage starts from items collected after a cutoff date (TBD, to be agreed in the Phase 3 design pass).
+**Rationale**: The backlog was a one-off catalogue load. Ongoing KEV additions are a small daily trickle, so the cost case for a pre-filter is unproven. Building a vendor/product filter now would be premature optimisation against the simple-and-boring rule.
+**Revisit**: Only if KEV noise or triage cost proves material in practice.
+
+## D-016: Triage prompt and script design (2026-07-09)
+
+**Decision**: Triage is one Claude API call per item using model Claude Sonnet (claude-sonnet-4-6). The prompt template lives at `src/triage_prompt.md`. It does not contain pasted copies of the taxonomy or scoring criteria. The script reads `docs/taxonomy-v1.0.md` and `docs/scoring-criteria.md` at runtime and injects them into placeholders, so the locked documents remain the single source of truth and version drift is impossible. Output is a single structured JSON object per item: auto_discard, tags, level, rules_applied, summary, flagged, flag_rules, flag_reason, confidence. Every level must be justified by named rules in rules_applied. The model may apply AD-2 and AD-3 only; AD-1 (duplicates) is handled upstream by content hash. Summaries derive strictly from supplied text. Uncertainty is flagged per F-1 to F-4, never guessed. Raw item rows are never altered; triage results are written to new columns.
+**Cost controls**: No batch API and no prompt caching for the PoC. At observed volume (roughly 6 items per day, about $0.02 to $0.03 per item at Sonnet 4.6 rates of $3/$15 per million tokens) both add code for savings measured in cents. Token usage and cost are logged per run from run one. Revisit at Wave 2 volume.
+**Trigger**: Manual for the PoC. Local script run first (`.env` for the API key, already gitignored), then a GitHub Actions workflow_dispatch button once stable. Automatic chaining after collection is deferred; the human review gate removes any end-to-end speed benefit.
+**Fetch failures**: If an item URL cannot be fetched (403, timeout, empty content), triage proceeds on title plus feed snippet with F-3 flagged, and the failure is recorded in a fetch_status column. Items are never silently skipped.
+
+## D-017: Triage scope cutoff, per source (2026-07-09)
+
+**Decision**: Eligibility for triage is per source, not a single date. CISA KEV items are eligible only where retrieved_at >= 2026-07-08T00:00:00Z, which excludes the 1,631-item first-run catalogue load (per D-015). Items from EBA, ESMA, and CERT-EU are eligible regardless of retrieval date, including the 30 items from the first run.
+**Rationale**: The KEV first run was a catalogue dump, not news. The first-run items from the other three sources are those sources' most recent genuine publications and span consultations, guidelines, advisories, and reports, giving the triage prompt a proper shakedown set (roughly 36 items, about one dollar) instead of a 6-item, KEV-heavy one.
+
+## D-018: Notion review board structure (2026-07-09)
+
+**Decision**: One Notion database, one row per triaged item. Properties: Title, URL, Source (select), Published date, Level (select, the working value reviewers may change), AI Level (select, written once by sync, never edited), Themes (multi-select), Sectors (multi-select), Jurisdiction (select), Type (select), Status (select: New, Reviewed, Published, Discarded), Flagged (checkbox), Flag reason (text), Summary (text), Confidence (select), Override reason (text), item_id (number, the SQLite key used by sync). Nothing more until real review shows a gap.
+**Override log**: Sync-back detects Level differing from AI Level and writes an override record to SQLite (item_id, original level, final level, reason, timestamp). This implements scoring criteria section 10 with no extra machinery. Override patterns feed Phase 5 threshold tuning.
+**Direction of truth**: SQLite remains the system of record (D-008). Notion holds review state (Status, Level, Override reason) which syncs back; all other properties flow one way, SQLite to Notion.
+
 ## Open items
 
 - TBD: MiCA theme tag. Deferred until item volume justifies it (see taxonomy section 9).
-- TBD: Notion workspace structure. To be designed in Phase 3.
+- Notion workspace structure: resolved by D-018.
 - TBD: Urgent alert delivery channel (email vs other). To be decided in Phase 4.
 - TBD: U-1 reference list of client-relevant systems (see scoring criteria section 12).
