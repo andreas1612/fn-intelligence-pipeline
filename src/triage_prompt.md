@@ -38,18 +38,20 @@ only the rules and text supplied in this prompt.
 - Rule of caution applies: if in doubt, do not discard. Score Low.
 - U-1 has two clauses joined by AND: critical-and-exploited, and
   client-base relevance. If the supplied text does not evidence that the
-  affected system is widely used by Finalogic or its client base, do not
-  finalise the item as Urgent. Flag F-2 and record the provisional level.
-  Do not assume client-base relevance from the vulnerability's severity
-  or from the source being CERT-EU or CISA KEV.
+  affected system is widely used by Finalogic or its client base, U-1
+  does not apply. Do not finalise the item as Urgent. Give it the level
+  it would hold absent any Urgent test (usually High via H-4 for
+  broad-impact cyber items) and flag F-2. Do not assume client-base
+  relevance from the vulnerability's severity or from the source being
+  CERT-EU or CISA KEV.
 - Weighting: apply W-1 to W-3 after selecting a base level, and record
   every rule you applied in "rules_applied".
-- rules_applied records only the rules that determined the outcome: the
+- rules_applied records only the rules that determined the level: the
   level rule reached (U, H, S-1, or L-1) and any weighting rule (W) or
-  discard rule (AD) actually applied. Do not log rules or discards you
-  considered and rejected, and do not write free-text reasoning. Every
-  level has an ID: Urgent U-1 to U-4, High H-1 to H-5, Standard S-1,
-  Low L-1.
+  discard rule (AD) actually applied. Flag rules (F) go in flag_rules,
+  not rules_applied. Do not log rules or discards you considered and
+  rejected, and do not write free-text reasoning. Every level has an ID:
+  Urgent U-1 to U-4, High H-1 to H-5, Standard S-1, Low L-1.
 - Summary: two to three sentences, factual, derived strictly from the
   supplied text. State what happened, who it applies to, and any deadline
   or required action named in the text. No speculation, no advice.

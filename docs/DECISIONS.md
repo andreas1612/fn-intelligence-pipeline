@@ -116,6 +116,22 @@ Locked decisions with rationale. Propose changes as new dated entries, do not ed
 **Scope note**: This is a PoC-appropriate fix. The proper long-term fix is the client-systems reference list, which would let U-1 finalise as Urgent when a match is evidenced. Section 12 TBD remains open for that.
 **Re-triage**: The 36-item set is re-triaged on v1.2 so the committed dataset reflects the corrected rule. Expected effect: most of the 11 U-1 items move from Urgent to F-2-flagged provisional Urgent. Cost about $0.65 to $0.75.
 
+## D-021: Scoring criteria v1.3 and prompt fixes, two defects from the first v1.2 board (2026-07-10)
+
+Two defects surfaced when the first full v1.2 triage was reviewed before pushing to Notion. Both are in the design documents, not the code. Neither required re-triaging the current 36-item set: the fixes apply to future runs, and any item mis-levelled under the old wording is flagged for human review anyway, so the reviewer corrects it at the gate.
+
+**Defect 1 (resolved, scoring-criteria v1.3)**: v1.2's U-1 said a flagged item keeps "its provisional level" but never defined that level. In the first v1.2 run, ten items cascaded Urgent to High (citing H-4) and three held Urgent, on the same rule and similar inputs. v1.3 defines the provisional level as the level the item would hold absent any Urgent test (High via H-4 for broad-impact cyber items short of Urgent), not Urgent. The prompt note is updated to match. Chosen reading: cascade to High, because "not finalised as Urgent" should not leave the item sitting at Urgent, and H-4 exists precisely for serious cyber items short of the Urgent tests.
+
+**Defect 2 (resolved in prompt, validator fix pending)**: Twelve of thirteen flagged items put F-2 in rules_applied, but per the prompt, flag rules belong in flag_rules and rules_applied holds only level, weighting, and discard rules. The validator regex ^(AD|U|H|W|F|S|L)-\d+$ accepted F- in rules_applied, so prompt and validator disagreed. The prompt now states F rules go in flag_rules, not rules_applied. Pending code change: tighten the rules_applied validator to ^(AD|U|H|W|S|L)-\d+$ (drop F), and validate flag_rules separately as ^F-\d+$. Flagged for the next code session; not a re-triage trigger.
+
+**Current board note**: The 36 items on the board were triaged under v1.2, so the three held-Urgent items and the F-2-in-rules_applied entries persist there. They are all flagged, so the reviewer sees and can correct them. The board is not rebuilt for this; v1.3 governs the next run.
+
+## D-022: Sync-back reads the original level from SQLite, not from the Notion display copy (2026-07-10)
+
+**Decision**: `pull()` in `src/notion_sync.py` takes `original_level` for an override row from `items.level` in SQLite, never from the Notion AI Level property. Where a page's AI Level disagrees with `items.level`, sync-back refuses to log an override for that item, prints a warning naming the item and both values, and exits non-zero. Status is still written back for that item, since review state is unaffected by the mismatch. Restoring an edited AI Level stays a manual repair against `items.level`: sync-back still writes nothing to Notion.
+**Trigger**: In the Phase 3 sync-back test, AI Level was edited on the board instead of Level. The two are adjacent columns. `pull()` read the board's AI Level as the original level and wrote an overrides row asserting the model scored item 3365 Standard and a human raised it to High. The model scored it High and the working Level was never changed. The row was a fabrication and nothing in the code noticed.
+**Rationale**: The override log is the Phase 5 threshold tuning dataset. A mis-click must never be able to write a false audit record into it. D-008 makes SQLite the system of record and D-018 flows every property except Status, Level and Override reason one way, SQLite to Notion, so AI Level in Notion is a display copy. Reading truth from the copy contradicted both. Under D-018 AI Level is written once and never edited, so a disagreement can only be a mis-edit, never a real override. Exiting non-zero keeps the integrity warning visible rather than silent, per D-009.
+
 ## Open items
 
 - TBD: MiCA theme tag. Deferred until item volume justifies it (see taxonomy section 9).

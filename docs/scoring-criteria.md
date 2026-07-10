@@ -1,8 +1,8 @@
-# Finalogic Intelligence Pipeline: Scoring Criteria v1.2
+# Finalogic Intelligence Pipeline: Scoring Criteria v1.3
 
 Status: Approved and locked
-Version: 1.2
-Approved: 07 July 2026 (v1.0), 09 July 2026 (v1.1, v1.2)
+Version: 1.3
+Approved: 07 July 2026 (v1.0), 09 July 2026 (v1.1, v1.2), 10 July 2026 (v1.3)
 Owner: Finalogic Ltd
 
 ## 1. Purpose
@@ -36,7 +36,7 @@ Rule of caution: if in doubt, do not discard. Score Low instead.
 
 Urgent protects the credibility of the alert channel. An item is Urgent only if at least one of the following applies:
 
-- **U-1**: A vulnerability that is critical, actively exploited or with public exploit code, AND in systems widely used by Finalogic or its client base. Both clauses must hold. If the supplied text establishes the vulnerability is critical and exploited but does not evidence that the affected system is widely used by Finalogic or its client base, the item is not finalised as Urgent: it is flagged F-2 for human review with its provisional level. This clause is unfillable from source text alone until the client-systems reference list exists (section 12); until then, U-1 without evidenced client-base relevance always routes to human review rather than auto-firing the alert channel.
+- **U-1**: A vulnerability that is critical, actively exploited or with public exploit code, AND in systems widely used by Finalogic or its client base. Both clauses must hold. If the supplied text establishes the vulnerability is critical and exploited but does not evidence that the affected system is widely used by Finalogic or its client base, U-1 does not apply: the item is not finalised as Urgent. It then takes the level it would hold absent any Urgent test (in most cases High via H-4, since these are broad-impact cybersecurity items short of the Urgent tests) and is flagged F-2 for human review. The provisional level is this cascaded level, not Urgent. This clause is unfillable from source text alone until the client-systems reference list exists (section 12); until then, U-1 without evidenced client-base relevance always routes to human review rather than auto-firing the alert channel.
 - **U-2**: A threat advisory or incident notification that requires same-week action by Finalogic or its clients.
 - **U-3**: A regulatory instrument or supervisory communication with immediate effect or a compliance deadline within 30 days.
 - **U-4**: An enforcement action or supervisory statement directly affecting an active client obligation.
@@ -95,6 +95,7 @@ Flagged items enter the review queue with the AI's provisional level and its sta
 
 ## 13. Version history
 
+- v1.3 (2026-07-10): Resolved an ambiguity in the v1.2 U-1 wording. "Its provisional level" is now defined: when U-1's client-base clause cannot be evidenced, the item takes the level it would hold absent any Urgent test (High via H-4 in most cases), not Urgent, and is flagged F-2. Fixes the split in the first v1.2 run where ten items cascaded to High and three held Urgent on the same rule. Logged as D-021.
 - v1.2 (2026-07-09): U-1 second clause (client-base relevance) made a mandatory flag condition. An item meeting the critical-exploited clause but lacking evidenced client-base relevance in the supplied text is flagged F-2 for human review, not finalised as Urgent. Fixes over-firing found in the first full triage run (13 of 35 items scored Urgent, 11 asserting U-1 while unable to test its second clause). No new rule IDs. Logged as D-020.
 - v1.1 (2026-07-09): Added rule IDs S-1 (Standard) and L-1 (Low) to sections 6 and 7, so all four levels are citable in rules_applied per D-016. No change to scoring behaviour; the level definitions and examples are unchanged. Logged as D-019.
 - v1.0 (2026-07-07): Initial approved version.

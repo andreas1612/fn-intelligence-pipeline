@@ -53,7 +53,9 @@ WHERE triaged_at IS NOT NULL AND notion_page_id IS NULL
 ORDER BY id
 """
 
-PULL_SQL = "SELECT id, notion_page_id FROM items WHERE notion_page_id IS NOT NULL ORDER BY id"
+PULL_SQL = (
+    "SELECT id, level, notion_page_id FROM items WHERE notion_page_id IS NOT NULL ORDER BY id"
+)
 
 
 def now_iso() -> str:
@@ -256,6 +258,7 @@ def pull() -> int:
 
     statuses = overrides = failed = 0
     missing_reason: list[int] = []
+    edited_ai_level: list[tuple[int, str, str]] = []
 
     for row in rows:
         item_id = row["id"]
@@ -277,8 +280,25 @@ def pull() -> int:
             conn.execute("UPDATE items SET review_status = ? WHERE id = ?", (status, item_id))
             statuses += 1
 
+        # The original level comes from SQLite, never from the board (D-022).
+        # Notion's AI Level is a display copy; SQLite is the system of record
+        # (D-008). Reading the copy lets a mis-edit of the write-once column
+        # forge an override row.
+        original = row["level"] or NO_LEVEL
         final = level or NO_LEVEL
-        original = ai_level or NO_LEVEL
+        board_original = ai_level or NO_LEVEL
+
+        if board_original != original:
+            # AI Level is written once and never edited (D-018), so a mismatch
+            # is a mis-edit, not an override. Refuse to log; warn instead.
+            edited_ai_level.append((item_id, original, board_original))
+            logger.warning(
+                "item=%d AI Level edited on the board: expected %s, found %s. Override not logged.",
+                item_id, original, board_original,
+            )
+            conn.commit()
+            continue
+
         if final != original:
             existing = conn.execute(
                 "SELECT 1 FROM overrides WHERE item_id = ? AND final_level = ?",
@@ -307,7 +327,14 @@ def pull() -> int:
         print("\nWARNING: overrides logged with no reason given, for items:")
         print("  " + ", ".join(str(i) for i in missing_reason))
         print("  Add an Override reason in Notion so the Phase 5 tuning has context.")
-    return 1 if failed else 0
+    if edited_ai_level:
+        print("\nWARNING: AI Level was edited on the board. It is written once and")
+        print("never edited (D-018), so no override was logged for these items:")
+        for item_id, expected, found in edited_ai_level:
+            print(f"  item {item_id}: expected {expected}, board shows {found}")
+        print("  Restore AI Level to the expected value in Notion, then pull again.")
+        print("  To change an item's level, edit Level, not AI Level.")
+    return 1 if (failed or edited_ai_level) else 0
 
 
 def main() -> int:

@@ -356,9 +356,14 @@ def write_invalid(
 # --- Run ------------------------------------------------------------------
 
 
+# Marks each run log line so partial runs are not summed with full ones.
+RUN_TYPES = ("pilot", "proof", "full", "re-triage")
+
+
 @dataclass
 class RunReport:
     run_at: str
+    run_type: str = "full"
     items_eligible: int = 0
     items_triaged: int = 0
     items_flagged: int = 0
@@ -514,6 +519,7 @@ def append_run_log(report: RunReport) -> None:
 def print_report(report: RunReport) -> None:
     print("\n--- Triage run report ---")
     print(f"run_at          {report.run_at}")
+    print(f"run_type        {report.run_type}")
     print(f"model           {report.model}")
     print(f"items eligible  {report.items_eligible}")
     print(f"items triaged   {report.items_triaged}")
@@ -531,7 +537,7 @@ def print_report(report: RunReport) -> None:
             print(f"  {line}")
 
 
-def run(limit: int | None = None, dry_run: bool = False) -> int:
+def run(limit: int | None = None, dry_run: bool = False, run_type: str = "full") -> int:
     load_dotenv()
 
     template = load_prompt_template()
@@ -544,7 +550,7 @@ def run(limit: int | None = None, dry_run: bool = False) -> int:
     migrate.migrate(conn)
 
     items = list(conn.execute(ELIGIBLE_SQL))
-    report = RunReport(run_at=now_iso(), items_eligible=len(items))
+    report = RunReport(run_at=now_iso(), run_type=run_type, items_eligible=len(items))
     if limit is not None:
         items = items[:limit]
         logger.info("limit=%d, processing %d of %d eligible items", limit, len(items), report.items_eligible)
@@ -580,8 +586,14 @@ def main() -> int:
         action="store_true",
         help="fetch pages and build prompts, but make no API calls and write nothing",
     )
+    parser.add_argument(
+        "--run-type",
+        choices=RUN_TYPES,
+        default="full",
+        help="recorded in the run log so partial runs are not summed with full ones",
+    )
     args = parser.parse_args()
-    return run(limit=args.limit, dry_run=args.dry_run)
+    return run(limit=args.limit, dry_run=args.dry_run, run_type=args.run_type)
 
 
 if __name__ == "__main__":
