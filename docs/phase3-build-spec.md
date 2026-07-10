@@ -1,7 +1,7 @@
 # Phase 3 Build Spec: Triage
 
 Status: Approved design, 2026-07-09. Build target for Claude Code.
-Governing decisions: D-008, D-015, D-016, D-017, D-018.
+Governing decisions: D-008, D-015, D-016, D-017, D-018, D-019.
 Read CLAUDE.md first. Do not re-litigate decided items.
 
 ## Scope
@@ -78,8 +78,11 @@ Per item:
    feed_snippet only per D-016. Never skip the item.
 2. Load `src/triage_prompt.md`, strip the header block above the `---`
    separator, fill the placeholders. {{TAXONOMY_V1_0}} and
-   {{SCORING_CRITERIA_V1_0}} are the full runtime-read contents of
-   `docs/taxonomy-v1.0.md` and `docs/scoring-criteria.md`.
+   {{SCORING_CRITERIA}} are the full runtime-read contents of
+   `docs/taxonomy-v1.0.md` and `docs/scoring-criteria.md`. Note the
+   scoring placeholder is {{SCORING_CRITERIA}} (renamed from
+   {{SCORING_CRITERIA_V1_0}} per D-019); the fill code must use the new
+   name or the substitution silently fails.
 3. Call the Claude API, model `claude-sonnet-4-6`, max_tokens 1500,
    temperature 0. Single user message. No system prompt needed beyond
    the template.
@@ -88,6 +91,8 @@ Per item:
    - level must be one of the four levels or null
    - cardinality: 1 to 3 themes, 0 to 2 sectors, exactly 1 jurisdiction,
      exactly 1 type
+   - each rules_applied entry matches ^(AD|U|H|W|F|S|L)-\d+$ (per D-019;
+     Standard cites S-1, Low cites L-1). Free-text entries fail validation.
    If validation fails, retry once with the validation error appended to
    the prompt. If it fails again, mark the item flagged with
    flag_reason 'invalid model output' and store the raw response in

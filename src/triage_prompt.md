@@ -2,8 +2,9 @@
 
 Status: Approved 2026-07-09 (D-016). Used verbatim by src/triage.py.
 Placeholders in double braces are filled at runtime. {{TAXONOMY_V1_0}} and
-{{SCORING_CRITERIA_V1_0}} receive the full text of docs/taxonomy-v1.0.md and
-docs/scoring-criteria.md. Do not paste copies of those documents here.
+{{SCORING_CRITERIA}} receive the full text of docs/taxonomy-v1.0.md and
+docs/scoring-criteria.md (currently v1.1). Do not paste copies of those
+documents here.
 
 ---
 
@@ -28,15 +29,27 @@ only the rules and text supplied in this prompt.
 
 # Scoring criteria (authoritative, applied verbatim)
 
-{{SCORING_CRITERIA_V1_0}}
+{{SCORING_CRITERIA}}
 
 # Additional application notes
 
 - Auto-discard: you may apply AD-2 and AD-3 only. AD-1 (duplicates) is
   handled upstream by the pipeline and is never yours to apply.
 - Rule of caution applies: if in doubt, do not discard. Score Low.
+- U-1 has two clauses joined by AND: critical-and-exploited, and
+  client-base relevance. If the supplied text does not evidence that the
+  affected system is widely used by Finalogic or its client base, do not
+  finalise the item as Urgent. Flag F-2 and record the provisional level.
+  Do not assume client-base relevance from the vulnerability's severity
+  or from the source being CERT-EU or CISA KEV.
 - Weighting: apply W-1 to W-3 after selecting a base level, and record
   every rule you applied in "rules_applied".
+- rules_applied records only the rules that determined the outcome: the
+  level rule reached (U, H, S-1, or L-1) and any weighting rule (W) or
+  discard rule (AD) actually applied. Do not log rules or discards you
+  considered and rejected, and do not write free-text reasoning. Every
+  level has an ID: Urgent U-1 to U-4, High H-1 to H-5, Standard S-1,
+  Low L-1.
 - Summary: two to three sentences, factual, derived strictly from the
   supplied text. State what happened, who it applies to, and any deadline
   or required action named in the text. No speculation, no advice.

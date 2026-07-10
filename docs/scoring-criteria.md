@@ -1,8 +1,8 @@
-# Finalogic Intelligence Pipeline: Scoring Criteria v1.0
+# Finalogic Intelligence Pipeline: Scoring Criteria v1.2
 
 Status: Approved and locked
-Version: 1.0
-Approved: 07 July 2026
+Version: 1.2
+Approved: 07 July 2026 (v1.0), 09 July 2026 (v1.1, v1.2)
 Owner: Finalogic Ltd
 
 ## 1. Purpose
@@ -36,7 +36,7 @@ Rule of caution: if in doubt, do not discard. Score Low instead.
 
 Urgent protects the credibility of the alert channel. An item is Urgent only if at least one of the following applies:
 
-- **U-1**: A vulnerability that is critical, actively exploited or with public exploit code, in systems widely used by Finalogic or its client base.
+- **U-1**: A vulnerability that is critical, actively exploited or with public exploit code, AND in systems widely used by Finalogic or its client base. Both clauses must hold. If the supplied text establishes the vulnerability is critical and exploited but does not evidence that the affected system is widely used by Finalogic or its client base, the item is not finalised as Urgent: it is flagged F-2 for human review with its provisional level. This clause is unfillable from source text alone until the client-systems reference list exists (section 12); until then, U-1 without evidenced client-base relevance always routes to human review rather than auto-firing the alert channel.
 - **U-2**: A threat advisory or incident notification that requires same-week action by Finalogic or its clients.
 - **U-3**: A regulatory instrument or supervisory communication with immediate effect or a compliance deadline within 30 days.
 - **U-4**: An enforcement action or supervisory statement directly affecting an active client obligation.
@@ -55,11 +55,11 @@ An item is High if it is not Urgent and at least one of the following applies:
 
 ## 6. Standard
 
-An item is Standard if it is relevant to Finalogic's scope but meets no High or Urgent test. Typical examples: reports and thematic reviews, speeches with supervisory weight, guidance clarifications, non-critical advisories, early-stage legislative developments.
+- **S-1**: An item is Standard if it is relevant to Finalogic's scope but meets no High or Urgent test. Typical examples: reports and thematic reviews, speeches with supervisory weight, guidance clarifications, non-critical advisories, early-stage legislative developments.
 
 ## 7. Low
 
-An item is Low if relevance is marginal but the item is worth keeping for the archive. Typical examples: tangential publications, minor updates to tracked material, international items with weak EU or Cyprus linkage.
+- **L-1**: An item is Low if relevance is marginal but the item is worth keeping for the archive. Typical examples: tangential publications, minor updates to tracked material, international items with weak EU or Cyprus linkage.
 
 ## 8. Theme weighting rules
 
@@ -72,7 +72,7 @@ An item is Low if relevance is marginal but the item is worth keeping for the ar
 The AI must flag an item for human review, instead of finalising the score, when any of the following applies:
 
 - **F-1**: The item was tagged Other (taxonomy rule 5).
-- **F-2**: The AI cannot determine whether an Urgent test applies from the supplied text.
+- **F-2**: The AI cannot determine whether an Urgent test applies from the supplied text. This includes the mandatory case in U-1: if the client-base relevance clause cannot be evidenced from the supplied text, the item must be flagged F-2 rather than finalised as Urgent.
 - **F-3**: The supplied text is truncated, paywalled, or otherwise insufficient to score.
 - **F-4**: Two levels appear equally applicable and no rule resolves the tie.
 
@@ -95,4 +95,6 @@ Flagged items enter the review queue with the AI's provisional level and its sta
 
 ## 13. Version history
 
+- v1.2 (2026-07-09): U-1 second clause (client-base relevance) made a mandatory flag condition. An item meeting the critical-exploited clause but lacking evidenced client-base relevance in the supplied text is flagged F-2 for human review, not finalised as Urgent. Fixes over-firing found in the first full triage run (13 of 35 items scored Urgent, 11 asserting U-1 while unable to test its second clause). No new rule IDs. Logged as D-020.
+- v1.1 (2026-07-09): Added rule IDs S-1 (Standard) and L-1 (Low) to sections 6 and 7, so all four levels are citable in rules_applied per D-016. No change to scoring behaviour; the level definitions and examples are unchanged. Logged as D-019.
 - v1.0 (2026-07-07): Initial approved version.

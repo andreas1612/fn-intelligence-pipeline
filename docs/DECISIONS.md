@@ -101,6 +101,21 @@ Locked decisions with rationale. Propose changes as new dated entries, do not ed
 **Override log**: Sync-back detects Level differing from AI Level and writes an override record to SQLite (item_id, original level, final level, reason, timestamp). This implements scoring criteria section 10 with no extra machinery. Override patterns feed Phase 5 threshold tuning.
 **Direction of truth**: SQLite remains the system of record (D-008). Notion holds review state (Status, Level, Override reason) which syncs back; all other properties flow one way, SQLite to Notion.
 
+## D-019: Scoring criteria v1.1, rule IDs for Standard and Low (2026-07-09)
+
+**Decision**: scoring-criteria.md is updated to v1.1. Sections 6 and 7 gain rule IDs S-1 (Standard) and L-1 (Low). Level definitions, examples, and scoring behaviour are unchanged; this only makes the two levels citable.
+**Reason**: The 3-item triage pilot surfaced that v1.0 gave rule IDs to auto-discard, Urgent, High, weighting, and flagging, but left Standard and Low as prose. D-016 requires every level to be justified by a named rule in rules_applied, which was impossible for the two most common levels, so the model improvised free text. The gap was in the locked scoring document, not the code. Found at the pilot checkpoint before the full run, which is the checkpoint working as intended.
+**Related prompt change**: src/triage_prompt.md placeholder renamed {{SCORING_CRITERIA_V1_0}} to {{SCORING_CRITERIA}}, and a note added: rules_applied records only the rules that determined the outcome, no considered-and-rejected reasoning, no free text. src/triage.py must be updated to fill the renamed placeholder.
+**Validator**: The triage validator accepts the pattern ^(AD|U|H|W|F|S|L)-\d+$ for rules_applied entries.
+**Cost**: The 3 pilot items are re-run against v1.1 (about $0.05) so the whole 36-item set carries consistent rule IDs.
+
+## D-020: Scoring criteria v1.2, U-1 client-base clause becomes a mandatory flag (2026-07-09)
+
+**Decision**: scoring-criteria.md is updated to v1.2. U-1's second clause (the vulnerability is in systems widely used by Finalogic or its client base) becomes a mandatory flag condition. An item that meets the critical-and-exploited clause but cannot evidence client-base relevance from the supplied text is flagged F-2 for human review with its provisional level, not finalised as Urgent. F-2's wording is extended to name this case. A matching note is added to src/triage_prompt.md.
+**Reason**: The first full triage run scored 13 of 35 items Urgent, all citing U-1, on a scale whose section 4 states Urgent is narrow by design. CERT-EU and CISA KEV emit critical exploited vulnerabilities almost by definition, so U-1's first clause is nearly always true; the second clause is the real filter and the model cannot test it because the client-systems reference list does not exist (section 12 TBD). Eleven items asserted U-1 while unable to test half of it; only two flagged F-2. On the current alert design this would fire the urgent channel on nearly every CERT-EU and KEV item, defeating the channel's purpose. Chosen over building the client-systems list now (deferred, needs client-stack input, a Phase 4/5 artefact) and over deferring the fix (would bank mislabelled Urgent rows requiring re-triage later).
+**Scope note**: This is a PoC-appropriate fix. The proper long-term fix is the client-systems reference list, which would let U-1 finalise as Urgent when a match is evidenced. Section 12 TBD remains open for that.
+**Re-triage**: The 36-item set is re-triaged on v1.2 so the committed dataset reflects the corrected rule. Expected effect: most of the 11 U-1 items move from Urgent to F-2-flagged provisional Urgent. Cost about $0.65 to $0.75.
+
 ## Open items
 
 - TBD: MiCA theme tag. Deferred until item volume justifies it (see taxonomy section 9).
