@@ -4,3 +4,4 @@ beautifulsoup4
 anthropic
 notion-client
 python-dotenv
+pyyaml

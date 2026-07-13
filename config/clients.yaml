@@ -1,0 +1,69 @@
+# Client register for intelligence matching (taxonomy section 9, "Phase 6" basis).
+#
+# Each client has an interest profile built ONLY from tags in docs/taxonomy-v1.0.md.
+# Sectors, jurisdictions, and themes are validated against the locked taxonomy at
+# seed time; any tag not in the taxonomy fails loudly and nothing is seeded.
+#
+# min_level is the least urgent level the client wants. An item matches only if its
+# level is at least as urgent (order: Urgent > High > Standard > Low). A client on
+# min_level "Standard" receives Urgent, High, and Standard items, but not Low.
+#
+# Matching rule (deterministic, no AI): an item matches a client when it shares at
+# least one sector, jurisdiction, or theme AND clears the client's min_level.
+#
+# Edit this file, then run:  python -m src.clients seed
+
+clients:
+  - name: Cyprus EMI (example)
+    active: true
+    min_level: Standard
+    sectors:
+      - EMIs and payment institutions
+    jurisdictions:
+      - EU
+      - Cyprus
+    themes:
+      - DORA
+      - ICT incident reporting
+      - Payments and e-money
+      - AML and financial crime
+
+  - name: Investment Firm (example)
+    active: true
+    min_level: High
+    sectors:
+      - Investment firms
+    jurisdictions:
+      - EU
+      - Cyprus
+    themes:
+      - DORA
+      - Operational resilience
+      - AI regulation
+      - Cyber threats and vulnerabilities
+
+  - name: Crypto CASP (example)
+    active: true
+    min_level: Standard
+    sectors:
+      - Crypto-asset service providers
+    jurisdictions:
+      - EU
+    themes:
+      - AML and financial crime
+      - Cyber threats and vulnerabilities
+      - DORA
+
+  - name: Bank (example)
+    active: true
+    min_level: Standard
+    sectors:
+      - Banks and credit institutions
+    jurisdictions:
+      - EU
+      - Cyprus
+    themes:
+      - DORA
+      - ICT third-party risk
+      - Operational resilience
+      - AML and financial crime
