@@ -35,7 +35,7 @@ Scope: the four Wave 1 sources in the source register (EBA, ESMA, CERT-EU, CISA 
 Design approved 2026-07-09 (D-016 to D-018). Build spec: `docs/phase3-build-spec.md`. Approved prompt: `src/triage_prompt.md`.
 
 - [x] Triage prompt built from taxonomy v1.0 and scoring criteria (verbatim rules, injected at runtime) (`src/triage_prompt.md`)
-- [x] Claude API integration, structured JSON output, confidence flagging (F-1 to F-4) (`src/triage.py`; 36 items triaged on scoring v1.2, run log in `logs/triage_runs.jsonl`)
+- [x] Model integration, structured JSON output, confidence flagging (F-1 to F-4) (`src/triage.py`; 36 items triaged on scoring v1.2, run log in `logs/triage_runs.jsonl`). Originally the Claude API; the provider moved to kie.ai on 2026-07-14 (D-026) and now lives behind `src/llm.py`. Everything above the model call is unchanged.
 - [x] Notion review board: New, Reviewed, Published, Discarded (D-018)
 - [x] Sync of triaged items to Notion, with sync-back of Status and Level and an override log (`src/notion_sync.py`; integrity guard per D-022)
 - [x] Scoring criteria hardened from real review: v1.1 rule IDs (D-019), v1.2 U-1 flag (D-020), v1.3 provisional level (D-021)

@@ -11,7 +11,7 @@ distributed. A full run is therefore safe to schedule: it cannot outrun the
 reviewer, it can only wait for them.
 
 Two stages cost money or send things, so both are opt-in:
-    triage      calls the Claude API, one request per untriaged item
+    triage      calls the model, one request per untriaged item
     distribute  delivers via the configured channel and marks matches delivered
 
 Run with:
@@ -211,7 +211,7 @@ def main() -> int:
     parser.add_argument(
         "--triage",
         action="store_true",
-        help="include the triage stage. Calls the Claude API and costs money.",
+        help="include the triage stage. Calls the model and costs money.",
     )
     parser.add_argument(
         "--distribute",

@@ -23,3 +23,8 @@ Desktop.ini
 
 # Note: finalogic.db is intentionally NOT ignored.
 # The database is the system of record and is committed by the Actions workflow (D-008).
+
+# Demo output. Regenerated on every `python -m src.demo` run and not an audit
+# record: the demo triages against a copy of the database, so its work never
+# happened as far as the system of record is concerned.
+logs/demo_items.jsonl

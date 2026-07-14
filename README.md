@@ -76,24 +76,43 @@ Sources (Wave 1):
 Health checks make zero-item runs visible and fail the job, so a silently broken
 feed is caught rather than passing as a quiet no-op.
 
-### Stage 2: Triage (`src/triage.py`)
+### Stage 2: Triage (`src/triage.py`, `src/llm.py`)
 
-One Claude API call per untriaged item. For each item the stage fetches the page
-text (falling back to the feed snippet on failure), builds a prompt from
-`src/triage_prompt.md` with the taxonomy and scoring criteria injected at
-runtime, and asks the model for structured JSON.
+One model call per untriaged item. The stage **fetches the article**, not just the
+title: it downloads the item's URL, strips scripts, navigation, headers and
+footers, caps the text at 20,000 characters, and puts that page text into the
+prompt alongside the title and the feed snippet. If the fetch fails (403,
+timeout, cookie wall) triage proceeds on title and snippet alone **and flags
+F-3**, so a thin read can never be mistaken for a full one. Items are never
+silently skipped.
+
+The prompt is `src/triage_prompt.md`, with the taxonomy and scoring criteria
+injected verbatim at runtime, so the locked documents stay the single source of
+truth and version drift is impossible.
 
 The response is validated before anything is written:
 
 - Tags must come from the locked taxonomy (theme, sector, jurisdiction, type).
 - Level must be one of Urgent / High / Standard / Low, or null when discarded.
-- `rules_applied` must be bare rule IDs from the scoring criteria.
+- `rules_applied` must be bare level, weighting, or discard rule IDs. Flag rules
+  (F-1 to F-4) are validated separately, in `flag_rules` (D-021).
 - On a validation failure the stage retries once, carrying the error back to the
   model. On a second failure the item is flagged as "invalid model output" and
   no tags, level, or summary are written. Nothing is invented.
 
-Raw collection columns are never altered by triage. Every run appends a line to
-`logs/triage_runs.jsonl` with counts, token usage, and cost.
+**The model is a replaceable component (D-026).** All model-aware code lives in
+`src/llm.py`, roughly a hundred lines wrapping one HTTP call. The prompt, the
+locked documents, and the validator do not know which model answered. The
+provider is kie.ai and the model is set by `KIE_MODEL` in the environment, not in
+code. `items.model` records what produced each row, so provenance survives a
+provider change.
+
+Raw collection columns are never altered by triage. Two logs are written:
+
+| Log | What it answers |
+|-----|-----------------|
+| `logs/triage_runs.jsonl` | Did the run work? Counts, tokens, cost, per run. |
+| `logs/triage_items.jsonl` | What was decided, about which document? One line per item, **with the source URL**, so any tag, level, or summary can be checked against the published page that produced it. |
 
 ### Stage 3: Human review (`src/notion_sync.py`)
 
@@ -214,7 +233,9 @@ Written by `src/matching.py`. One row per approved item / client pair:
 │   ├── feed-verification.md
 │   └── phase3-*.md, phase5-*.md
 ├── logs/
-│   └── triage_runs.jsonl         # per-run counts, tokens, cost
+│   ├── triage_runs.jsonl         # per-run counts, tokens, cost
+│   ├── triage_items.jsonl        # per-item decisions WITH the source URL (audit trail)
+│   └── demo_items.jsonl          # demo output only (gitignored, truncated each run)
 ├── tests/                        # pytest: run `pytest` from the repo root
 │   ├── conftest.py               # temporary database, never finalogic.db
 │   ├── test_matching.py          # the matching rule: overlap, level gate, scoring
@@ -225,7 +246,9 @@ Written by `src/matching.py`. One row per approved item / client pair:
     ├── db.py                     # SQLite schema and item insert
     ├── migrate.py                # additive triage-column migration
     ├── sources.py                # verified feed URLs
+    ├── llm.py                    # THE ONLY model-aware code. Swap providers here.
     ├── pipeline.py               # full-cycle orchestrator, with --dry-run
+    ├── demo.py                   # one-command live demo of the whole cycle
     ├── collectors/               # INTAKE plugins, one per source
     │   ├── base.py               # shared RSS fetch, logging, timestamps
     │   └── eba.py, esma.py, cert_eu.py, cisa_kev.py
@@ -345,8 +368,9 @@ copy that could drift.
 pip install -r requirements.txt
 ```
 
-Dependencies: `feedparser`, `requests`, `beautifulsoup4`, `anthropic`,
-`notion-client`, `python-dotenv`, `pyyaml`.
+Dependencies: `feedparser`, `requests`, `beautifulsoup4`, `notion-client`,
+`python-dotenv`, `pyyaml`, and `pytest` for the tests. There is no vendor SDK for
+the model: it is one HTTP call.
 
 ### Configure secrets
 
@@ -354,8 +378,12 @@ Copy `.env.example` to `.env` and fill in. `.env` is gitignored and must never b
 committed. In GitHub Actions these are repository secrets with the same names.
 
 ```
-ANTHROPIC_API_KEY=
-NOTION_API_KEY=
+KIE_API_KEY=            # triage provider (kie.ai). Required.
+KIE_BASE_URL=https://api.kie.ai
+KIE_MODEL=gemini-3-5-flash    # swap the model here, not in code
+KIE_THINKING_LEVEL=low        # low (cheap) or high
+
+NOTION_API_KEY=         # the human review board
 NOTION_DATABASE_ID=
 ```
 
@@ -425,6 +453,35 @@ python -m src.pipeline --skip collect
 sends things. A dry run previews both for free. The pipeline stops at the first
 failing stage rather than running on partial data.
 
+### See it work, in one command
+
+```bash
+python -m src.demo
+```
+
+Runs the whole cycle live and narrates each stage: fetches the four real source
+websites, triages fresh items (showing the page text it actually read, the rule
+that justified the level, and what each item cost), demonstrates the human gate
+blocking unreviewed items, approves one, matches it to clients, prints the
+digest, then re-runs distribution to show nothing is ever sent twice.
+
+Costs a few cents. It works on a **copy** of the database and never writes to
+`finalogic.db`, so it is safe to run repeatedly in front of anyone. It rewinds
+the copy's triage state for the most recent real publications, so it keeps
+working after the backlog is cleared, and it presents on a fixed date so its
+output is reproducible.
+
+| Flag | Effect |
+|------|--------|
+| `--limit N` | how many items to triage (default 3, about $0.002 each) |
+| `--date YYYY-MM-DD` | the date the demo presents as running on |
+| `--no-collect` | skip the live fetch, use what is already stored |
+| `--no-rewind` | triage only genuinely untriaged items (drains the backlog) |
+
+The two things it fakes are stated on screen: it works on a copy, and it stands
+in for the Notion reviewer by approving one item directly, because a demo cannot
+wait for a human. Everything else is real.
+
 ### Tests
 
 ```bash
@@ -457,10 +514,21 @@ require human input), so they are not on the daily schedule.
   Deduplication handles storage. A cutoff date gates which KEV items are eligible
   for (paid) triage, so the backlog is not triaged wholesale. The cutoff is a
   constant in `src/triage.py`.
-- **Model**: triage uses `claude-sonnet-4-6`. If moving to a newer model
-  (for example `claude-sonnet-5`), note that `temperature=0` in `src/triage.py`
-  must be removed, since non-default sampling parameters are rejected on newer
-  models.
+- **Model and cost**: triage runs `gemini-3-5-flash` via kie.ai (D-026), at about
+  **$0.002 per item, roughly $4.50 a year** at 6 items a day. Change the model by
+  setting `KIE_MODEL`, not by editing code. The pricing constants in
+  `src/triage.py` are marked TBD: verify them against your kie.ai billing before
+  trusting the cost figures in `logs/triage_runs.jsonl`. A wrong constant
+  misreports cost and cannot affect triage output.
+- **Where the tokens go**: roughly 85% of every prompt is the taxonomy and the
+  scoring criteria, re-sent on every call. That is the cost of having one source
+  of truth (D-016) and is not worth optimising at this volume. If volume grows
+  sharply, prompt caching is the lever, not fetching less and not the model.
+- **Watch the flag rate**: the Claude runs flagged 13 of 36 items. Under-flagging
+  is the dangerous failure with a cheaper model, because it does not look like an
+  error, it looks like confidence, and it pushes items past the human gate
+  unexamined. If the flag rate drops materially on comparable items, set
+  `KIE_THINKING_LEVEL=high` or move to a stronger model slug (see D-026).
 - **Console encoding**: the client tooling forces UTF-8 stdout so item titles
   with non-ASCII characters (Greek from Cyprus sources, zero-width spaces from
   EBA) print without crashing on a legacy Windows console.

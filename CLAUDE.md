@@ -9,9 +9,9 @@ Read `README.md` for architecture, then `docs/DECISIONS.md` for locked choices, 
 ## Hard rules
 
 1. **Traceability**: Every item in the system must trace to a named source URL from the source register. No open web browsing, no discovered sources, no generated items.
-2. **AI assists, humans decide**: The Claude API classifies, scores, and summarises only text the pipeline provides. Summaries derive strictly from fetched content. Nothing is distributed without passing the human review gate in Notion.
-3. **Controlled taxonomy and scoring**: Tag only from `docs/taxonomy-v1.0.md`. Score only per `docs/scoring-criteria.md`. No ad hoc tags or levels.
-4. **Simple and boring wins**: Standard library and minimal dependencies (feedparser, requests, BeautifulSoup, anthropic, notion sdk). No orchestration frameworks. No agents.
+2. **AI assists, humans decide**: The triage model classifies, scores, and summarises only text the pipeline provides. Summaries derive strictly from fetched content. Nothing is distributed without passing the human review gate in Notion. The model is a replaceable component (D-026): it lives behind `src/llm.py`, and the prompt, taxonomy, scoring rules, and validator are all model-agnostic.
+3. **Controlled taxonomy and scoring**: Tag only from `docs/taxonomy-v1.0.md`. Score only per `docs/scoring-criteria.md`. No ad hoc tags or levels. This is enforced by the validator, not by trusting the model.
+4. **Simple and boring wins**: Standard library and minimal dependencies (feedparser, requests, BeautifulSoup, notion sdk, pyyaml). No orchestration frameworks. No agents. No vendor SDK for the model: it is one HTTP call.
 5. **SQLite is the system of record**: One database file, committed to the repo after each collection run. Notion is a view for human review, not the source of truth.
 6. **PoC scope governs**: Build only the Wave 1 and Wave 2 sources defined at the top of `docs/finalogic-source-register.md`. Everything else is Phase 6 (coverage expansion) backlog.
 

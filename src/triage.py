@@ -1,9 +1,14 @@
-"""Triage: classify, score, and summarise untriaged items via the Claude API.
+"""Triage: classify, score, and summarise untriaged items via an LLM.
 
-One API call per item (D-016). Tags come only from docs/taxonomy-v1.0.md and
+One model call per item (D-016). Tags come only from docs/taxonomy-v1.0.md and
 levels only from docs/scoring-criteria.md, both read at runtime and injected
 into src/triage_prompt.md. Model output is validated before it is written.
 Raw item columns are never altered.
+
+The provider lives in src/llm.py and is the only model-aware code in the project
+(D-026). Everything here is model-agnostic: the prompt, the locked documents, and
+the validator do not know or care which model answered. The model that produced
+each row is recorded in items.model, so provenance survives a provider change.
 
 Run with: python -m src.triage [--limit N] [--dry-run]
 """
@@ -17,24 +22,26 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-import anthropic
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
-from src import db, migrate
+from src import db, llm, migrate
 from src.collectors.base import logger
 
-# Model and request settings (D-015, D-016). One call per item, no batch API,
-# no prompt caching, no KEV pre-filter.
-MODEL = "claude-sonnet-4-6"
+# Request settings (D-015, D-016, D-026). One call per item, no batching, no
+# caching, no KEV pre-filter. The model itself is configured in the environment
+# (KIE_MODEL) and resolved by src/llm.py.
 MAX_TOKENS = 1500
 TEMPERATURE = 0
 
-# Pricing in USD per million tokens for claude-sonnet-4-6.
-# Verified 2026-07-09 against the published Anthropic rates.
-INPUT_USD_PER_MTOK = 3.00
-OUTPUT_USD_PER_MTOK = 15.00
+# Pricing in USD per million tokens, used only to report the cost of a run.
+# TBD: verify against the kie.ai price list for the configured model. These are
+# the published Gemini Flash rates and are the basis of the figures in
+# logs/triage_runs.jsonl. A wrong constant misreports cost; it cannot affect
+# triage output.
+INPUT_USD_PER_MTOK = 0.30
+OUTPUT_USD_PER_MTOK = 2.50
 
 # Fetch settings.
 FETCH_CHAR_CAP = 20000
@@ -69,6 +76,18 @@ TAXONOMY_PATH = ROOT / "docs" / "taxonomy-v1.0.md"
 SCORING_PATH = ROOT / "docs" / "scoring-criteria.md"
 RUN_LOG_PATH = ROOT / "logs" / "triage_runs.jsonl"
 
+# Per-item log. triage_runs.jsonl records counts and cost per run, which answers
+# "did the run work" but not "what did it decide, and about which document".
+# This one is the audit trail: one line per triaged item, with the source URL, so
+# any classification can be checked against the document that produced it.
+ITEM_LOG_PATH = ROOT / "logs" / "triage_items.jsonl"
+
+# Normally None, meaning the item log is stamped with the real clock. The demo
+# sets a fixed timestamp so its log is reproducible: the same demo run twice
+# produces byte-identical output, and nothing in it can be mistaken for a real
+# triage record. Production never sets this.
+ITEM_LOG_TIMESTAMP: str | None = None
+
 ELIGIBLE_SQL = f"""
 SELECT id, source, title, url, published_at, summary
 FROM items
@@ -80,6 +99,16 @@ ORDER BY id
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def cost_of(input_tokens: int, output_tokens: int) -> float:
+    """USD for one call. One definition, used for both per-item and per-run cost,
+    so the two can never disagree."""
+    return round(
+        input_tokens / 1_000_000 * INPUT_USD_PER_MTOK
+        + output_tokens / 1_000_000 * OUTPUT_USD_PER_MTOK,
+        6,
+    )
 
 
 # --- Prompt and controlled vocabulary -------------------------------------
@@ -332,7 +361,7 @@ def write_result(
             result["flag_reason"],
             result["confidence"],
             fetch_status,
-            MODEL,
+            llm.model_name(),
             input_tokens,
             output_tokens,
             item_id,
@@ -367,7 +396,7 @@ def write_invalid(
     reason = f"invalid model output: {'; '.join(errors)} | raw: {raw[:2000]}"
     conn.execute(
         INVALID_SQL,
-        (now_iso(), reason, fetch_status, MODEL, input_tokens, output_tokens, item_id),
+        (now_iso(), reason, fetch_status, llm.model_name(), input_tokens, output_tokens, item_id),
     )
     conn.commit()
 
@@ -392,14 +421,12 @@ class RunReport:
     fetch_failures: int = 0
     input_tokens: int = 0
     output_tokens: int = 0
-    model: str = MODEL
+    model: str = field(default_factory=llm.model_name)
     api_errors: list[str] = field(default_factory=list)
 
     @property
     def cost_usd(self) -> float:
-        input_cost = self.input_tokens / 1_000_000 * INPUT_USD_PER_MTOK
-        output_cost = self.output_tokens / 1_000_000 * OUTPUT_USD_PER_MTOK
-        return round(input_cost + output_cost, 4)
+        return round(cost_of(self.input_tokens, self.output_tokens), 4)
 
     def to_json(self) -> dict:
         payload = {k: v for k, v in self.__dict__.items()}
@@ -409,15 +436,8 @@ class RunReport:
         return payload
 
 
-def call_model(client: anthropic.Anthropic, prompt: str) -> tuple[str, int, int]:
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=MAX_TOKENS,
-        temperature=TEMPERATURE,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    text = "".join(block.text for block in response.content if block.type == "text")
-    return text, response.usage.input_tokens, response.usage.output_tokens
+def call_model(prompt: str) -> tuple[str, int, int]:
+    return llm.complete(prompt, max_tokens=MAX_TOKENS, temperature=TEMPERATURE)
 
 
 def retry_prompt(prompt: str, errors: list[str]) -> str:
@@ -432,7 +452,6 @@ def retry_prompt(prompt: str, errors: list[str]) -> str:
 
 
 def triage_item(
-    client: anthropic.Anthropic | None,
     conn: sqlite3.Connection,
     item: sqlite3.Row,
     template: str,
@@ -441,7 +460,10 @@ def triage_item(
     scoring_text: str,
     report: RunReport,
     dry_run: bool,
-) -> None:
+) -> dict | None:
+    """Triage one item. Returns what was actually read and spent, or None if the
+    item was left untriaged. The return value is for callers that want to show
+    their work; the database write is the real output and does not depend on it."""
     item_id = item["id"]
     fetched_text, fetch_status = fetch_page(item["url"])
     if fetch_status != "ok":
@@ -471,9 +493,19 @@ def triage_item(
             fetch_status,
             len(prompt),
         )
-        return
+        return None
 
-    assert client is not None
+    # What the model was actually given. Reported so a reader can see whether a
+    # classification rests on the full article or only on a title and a snippet.
+    read = {
+        "fetch_status": fetch_status,
+        "fetched_chars": len(fetched_text),
+        "truncated": len(fetched_text) >= FETCH_CHAR_CAP,
+        "feed_snippet_chars": len(strip_html(item["summary"]) or ""),
+        "prompt_chars": len(prompt),
+        "excerpt": (fetched_text[:400] + "...") if fetched_text else "",
+    }
+
     item_input = item_output = 0
     raw = ""
     errors: list[str] = []
@@ -481,12 +513,12 @@ def triage_item(
     # One call, then at most one retry carrying the validation error.
     for attempt in (1, 2):
         try:
-            raw, used_in, used_out = call_model(client, prompt)
-        except anthropic.APIError as exc:
+            raw, used_in, used_out = call_model(prompt)
+        except llm.LLMError as exc:
             report.items_api_error += 1
-            report.api_errors.append(f"item {item_id}: {type(exc).__name__}: {exc}")
-            logger.error("item=%d API error, left untriaged for a later run: %s", item_id, exc)
-            return
+            report.api_errors.append(f"item {item_id}: {exc}")
+            logger.error("item=%d model error, left untriaged for a later run: %s", item_id, exc)
+            return None
 
         item_input += used_in
         item_output += used_out
@@ -502,6 +534,7 @@ def triage_item(
         if not errors:
             assert isinstance(result, dict)
             write_result(conn, item_id, result, fetch_status, item_input, item_output)
+            append_item_log(item, result, fetch_status, llm.model_name())
             report.items_triaged += 1
             if result["flagged"]:
                 report.items_flagged += 1
@@ -517,7 +550,14 @@ def triage_item(
                 result["confidence"],
                 attempt,
             )
-            return
+            return {
+                **read,
+                "input_tokens": item_input,
+                "output_tokens": item_output,
+                "attempts": attempt,
+                "cost_usd": cost_of(item_input, item_output),
+                "result": result,
+            }
 
         if attempt == 1:
             logger.warning("item=%d validation failed, retrying once: %s", item_id, errors)
@@ -527,12 +567,48 @@ def triage_item(
     report.items_invalid += 1
     report.items_flagged += 1
     logger.error("item=%d invalid model output after retry: %s", item_id, errors)
+    return None
 
 
 def append_run_log(report: RunReport) -> None:
     RUN_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with RUN_LOG_PATH.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(report.to_json()) + "\n")
+
+
+def append_item_log(item: sqlite3.Row, result: dict, fetch_status: str, model: str) -> None:
+    """Log one triage decision against the document that produced it.
+
+    Written for a human reading it later, not for a machine: the source URL is
+    here so that any tag, level, or summary can be checked against the actual
+    published document. Hard rule 1 (traceability) is only real if the trace is
+    reachable.
+    """
+    ITEM_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    entry = {
+        "triaged_at": ITEM_LOG_TIMESTAMP or now_iso(),
+        "item_id": item["id"],
+        "source": item["source"],
+        "title": item["title"],
+        "url": item["url"],
+        "published_at": item["published_at"],
+        "fetch_status": fetch_status,
+        "model": model,
+        "level": result.get("level"),
+        "rules_applied": result["rules_applied"],
+        "auto_discard": result.get("auto_discard"),
+        "theme_tags": result["theme_tags"],
+        "sector_tags": result["sector_tags"],
+        "jurisdiction": result["jurisdiction"],
+        "type": result["type"],
+        "summary": result["summary"],
+        "flagged": result["flagged"],
+        "flag_rules": result["flag_rules"],
+        "flag_reason": result["flag_reason"],
+        "confidence": result["confidence"],
+    }
+    with ITEM_LOG_PATH.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 def print_report(report: RunReport) -> None:
@@ -577,13 +653,12 @@ def run(limit: int | None = None, dry_run: bool = False, run_type: str = "full")
     if not items:
         logger.info("no eligible items")
 
-    client = None
     if not dry_run:
-        client = anthropic.Anthropic()
+        logger.info("triaging with model=%s", llm.model_name())
 
     for item in items:
         triage_item(
-            client, conn, item, template, taxonomy, taxonomy_text, scoring_text, report, dry_run
+            conn, item, template, taxonomy, taxonomy_text, scoring_text, report, dry_run
         )
 
     conn.close()
@@ -598,7 +673,9 @@ def run(limit: int | None = None, dry_run: bool = False, run_type: str = "full")
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Triage untriaged items via the Claude API.")
+    parser = argparse.ArgumentParser(
+        description="Triage untriaged items via the configured model (src/llm.py)."
+    )
     parser.add_argument("--limit", type=int, help="process at most N eligible items")
     parser.add_argument(
         "--dry-run",

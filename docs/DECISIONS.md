@@ -166,6 +166,25 @@ Recorded retrospectively. Phase 4 built the matching layer; this entry states th
 **Options, not yet weighed**: a hosted Postgres (Supabase, Neon); keeping SQLite but hosting the file (Litestream, Turso); or keeping the current design and serialising the workflow with a concurrency group, which fixes the race but not the diffing or the history bloat.
 **Status**: Open. To be decided before Phase 6 starts, per the roadmap. D-008 (SQLite as system of record) is not in question here; where the file lives is.
 
+## D-026: Triage provider is kie.ai, not the Claude API. Supersedes D-003 and D-016 on model choice (2026-07-14)
+
+**Decision**: Triage calls a model through kie.ai, which serves models on a Gemini-compatible API. Default model `gemini-3-5-flash`, configured by `KIE_MODEL` in the environment. The Anthropic SDK is removed as a dependency. D-003 (which named the Claude API) and D-016 (which named `claude-sonnet-4-6`, its pricing, and its cost controls) are superseded on model choice only. Everything else in D-016 stands unchanged: one call per item, the prompt template at `src/triage_prompt.md`, the locked documents injected at runtime, the same structured JSON output, validation before write, and raw item columns never altered.
+
+**Trigger**: The Anthropic account is out of credit. The kie.ai account has credit. The pipeline could not run.
+
+**Rationale**: The model is the one component in this design that was always meant to be replaceable. The value of the system is in the parts that are not the model: named-source traceability, the locked taxonomy, the scoring rules, the validator that rejects anything outside them, and the human gate. That claim was tested rather than assumed before this decision was taken. The same prompt, the same locked documents and the same validator were run against `gemini-3-5-flash` on three live items, and all three produced in-taxonomy tags and rule-justified levels that passed validation first time, with no retries and no code changes above `src/llm.py`.
+
+**Structure**: All model-aware code is now in `src/llm.py`, roughly a hundred lines calling one HTTP endpoint. Changing model or provider again is a change to that file and the environment, nothing else. `triage.py` does not know what model answered. `items.model` records what actually produced each row, so the 36 rows triaged on `claude-sonnet-4-6` remain attributable and are not silently reattributed.
+
+**Cost**: Roughly $0.002 per item against roughly $0.021 on Sonnet, so about $5 a year against about $45 at current volume. The saving is not the reason for the change; the empty wallet is. The pricing constants in `triage.py` are marked TBD until verified against the kie.ai price list. They are used only to report the cost of a run and cannot affect triage output.
+
+**Risks accepted, and what to watch**:
+1. **Under-flagging is the failure mode to watch, not bad tags.** The Claude run flagged 13 of 36 items (36%). The three-item Gemini Flash sample flagged none. Three routine items is far too small a sample to conclude anything, and all three were genuinely Standard, but flagging is where a weaker model is dangerous: an item that should have been flagged for a human simply looks confident, and passes the gate unexamined. Tag validity is the easy property; calibrated uncertainty is the hard one, and the F rules exist to capture it. Review the flag rate after the next full run. If it is materially below the Claude baseline on comparable items, raise `KIE_THINKING_LEVEL` to `high` or move to a stronger model slug (kie.ai also serves `claude-haiku-4-5`).
+2. **Third-party proxy.** kie.ai is a reseller sitting in front of the model provider. For a firm advising regulated clients on ICT third-party risk, this is the kind of dependency that belongs in its own register of information. Items sent to it are public regulatory and security publications, not client data, which bounds the exposure. Revisit before any client-confidential content enters the pipeline.
+3. **The existing 36 rows were triaged on a different model.** They are not re-triaged. The dataset is therefore mixed, and `items.model` is what distinguishes it. Re-triage on one model before the override log is used for scoring threshold tuning (Phase 6), or the tuning dataset conflates two models' behaviour.
+
+**Reversal**: Set `KIE_MODEL` to another slug, or restore an Anthropic client in `src/llm.py`. Nothing above that file changes. That is the point of the structure.
+
 ## Open items
 
 - TBD: MiCA theme tag. Deferred until item volume justifies it (see taxonomy section 9).
