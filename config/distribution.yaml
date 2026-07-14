@@ -1,0 +1,20 @@
+# Distribution settings (D-024).
+#
+# channel selects where digests are delivered. Channel selection is configuration,
+# not a code change: src/distribute/channels.py reads this file and the call site
+# never names a channel.
+#
+# Available channels:
+#   console  print the digest (default; safe, sends nothing anywhere)
+#   file     write to output_dir/<client>/<date>.md
+#
+# email is deliberately absent. The stack names SendGrid (D-003), but nothing is
+# sent to a real address while config/clients.yaml holds example clients (D-024).
+#
+# An unknown channel name is a hard error, never a silent fallback: a fallback
+# would look like a successful send and mark matches delivered that nobody got.
+
+channel: file
+
+# Relative to the repository root. Gitignored: digests rebuild from the database.
+output_dir: data/digests

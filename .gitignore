@@ -10,6 +10,12 @@ venv/
 
 # Local tooling
 .claude/
+.pytest_cache/
+
+# Delivered digests (D-024). Not committed: they rebuild from the database at any
+# time, and the match ledger already records what was sent and when (delivered_at),
+# so committing them would add churn without adding an audit trail.
+data/
 
 # OS noise
 Thumbs.db

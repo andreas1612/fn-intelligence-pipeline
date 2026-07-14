@@ -5,3 +5,7 @@ anthropic
 notion-client
 python-dotenv
 pyyaml
+
+# Test suite (Phase 5, D-024). The only new dependency, and it ships nothing to
+# production: the collect workflow does not install or run it.
+pytest

@@ -132,9 +132,45 @@ Two defects surfaced when the first full v1.2 triage was reviewed before pushing
 **Trigger**: In the Phase 3 sync-back test, AI Level was edited on the board instead of Level. The two are adjacent columns. `pull()` read the board's AI Level as the original level and wrote an overrides row asserting the model scored item 3365 Standard and a human raised it to High. The model scored it High and the working Level was never changed. The row was a fabrication and nothing in the code noticed.
 **Rationale**: The override log is the Phase 5 threshold tuning dataset. A mis-click must never be able to write a false audit record into it. D-008 makes SQLite the system of record and D-018 flows every property except Status, Level and Override reason one way, SQLite to Notion, so AI Level in Notion is a display copy. Reading truth from the copy contradicted both. Under D-018 AI Level is written once and never edited, so a disagreement can only be a mis-edit, never a real override. Exiting non-zero keeps the integrity warning visible rather than silent, per D-009.
 
+## D-023: Client matching design, and phases renumbered (2026-07-14)
+
+Recorded retrospectively. Phase 4 built the matching layer; this entry states the design it settled on and fixes the phase numbering it broke.
+
+**Matching design**: Client interest profiles are built only from tags in the locked taxonomy (`config/clients.yaml`, validated at seed time by `src/clients.py`; an unknown tag fails loudly and nothing is seeded). An item matches a client when it shares at least one sector, jurisdiction, or theme tag AND its level is at least as urgent as the client's `min_level`. The match is scored by weighted overlap: jurisdiction 3, sector 2, theme 1, because jurisdiction and sector route a regulatory item more strongly than a shared theme does. Every match records `matched_on`, naming the tags that caused it.
+**No AI in matching**: The engine is deterministic. AI classifies and summarises (D-002); routing is a rule. A model deciding which client sees what would be unauditable and could not be explained to a client.
+**Human gate enforced in matching**: Only items with `review_status` in ('Reviewed', 'Published') are matched. `preview` matches every triaged item for testing and never writes.
+**Ledger**: `matches(item_id, client_id, score, matched_on, created_at, delivered_at)`, primary key (item_id, client_id). Re-running updates score and matched_on for a pair and never clears `delivered_at`. `delivered_at` was added here but left unused until Phase 5 claimed it.
+
+**Phase renumbering**: Client matching was built as Phase 4 and distribution as Phase 5, but the roadmap already used those numbers for internal delivery and coverage expansion. Coverage expansion moves to Phase 6 and white-label to Phase 7. `docs/ROADMAP.md` is authoritative. D-015, D-018, and D-020 were written earlier and say "Phase 5" where they mean coverage expansion and scoring threshold tuning; read those as Phase 6. History is not edited (this log's own rule), so the note is carried here and in the roadmap instead.
+**Reason**: Two documents were using "Phase 5" to mean different things, and `CLAUDE.md` still told a fresh session that Phase 2 was active. The next session would have started from a wrong map.
+
+## D-024: Distribution design (2026-07-14)
+
+**Decision**: Distribution is a set of output plugins under `src/distribute/`, symmetric with `src/collectors/` for intake. The deterministic core sits between them.
+
+**Digest** (`digest.py`): Per client, gather every match where `delivered_at IS NULL`, join to the item, group by level (Urgent, High, Standard, Low), and render Markdown. Each entry shows the title, source, published date, link, the item's existing `ai_summary`, and the `matched_on` reason. Where an item was flagged at triage, the flag reason is shown too: it reached the client only because a human reviewed it and let it through, so it is stated rather than hidden.
+**No model calls in distribution**: The digest reuses the summary triage already wrote and a human already approved. Summaries derive strictly from fetched text (hard rule 2). An LLM-written executive summary would be a new claim about the items that no reviewer saw, and is a separate decision, not this one.
+**Channels** (`channels.py`): One channel per destination behind a `deliver` interface, selected by `config/distribution.yaml`, never named at the call site. Built: `file` (writes `data/digests/<client>/<date>.md`) and `console`. An unknown channel name is fatal, never a silent fallback to console, because a fallback would look like a successful send and mark matches delivered that nobody received.
+**Email deferred**: SendGrid is already the locked distribution stack (D-003), so adding it is executing a made decision, not a new one. It is still out of scope here: every client in `config/clients.yaml` is an example, so there is nobody real to send to, and a session also writing its first tests should not carry a live-send blast radius. Email is Phase 7.
+**Idempotency**: `delivered_at` is the key. It is written only after a channel reports success. A delivered match is never re-sent; a failed send leaves it null and the next run retries it. Re-running distribution immediately produces nothing.
+**Human gate re-asserted at send**: Distribution independently checks `review_status` in ('Reviewed', 'Published') even though matching already did. A match row is written once and read later, and a reviewer can move an item back to New or Discarded on the board in between. The gate is the product promise, so it is checked where the sending happens, not only where the matching happened.
+**Orchestrator** (`pipeline.py`): Runs collect, triage, push, pull, match, distribute in order and stops at the first failure, because each stage consumes the one before it. `triage` and `distribute` are opt-in on a live run, since one spends money and the other sends things. `--dry-run` previews every stage and writes, sends, and charges nothing.
+**Digests are not committed**: `data/` is gitignored. Digests rebuild from the database at any time, and the ledger already records what was sent and when, so committing them would add churn without adding an audit trail.
+**Tests** (`tests/`, pytest): Cover the matching rule, triage output validation, the taxonomy parser, and the human gate plus idempotency. These are the places where a regression is silent: it shows up as an unreviewed item in a client's inbox or a digest sent twice, not as an error. Tests run against a temporary database built by the real schema code, never against `finalogic.db`. pytest is the only new dependency and ships nothing to production.
+**D-021 defect 2 closed here**: The pending validator fix was applied. `rules_applied` now accepts only `^(AD|U|H|W|S|L)-\d+$` and `flag_rules` is validated separately as `^F-\d+$`. Prompt and validator now agree. Not a re-triage trigger: the 12 affected rows are all flagged, so a reviewer sees them, and the fix governs future runs.
+
+## D-025 (PROPOSED, not decided): Move the database off git (2026-07-14)
+
+**Problem**: `finalogic.db` is a 1.1 MB SQLite binary committed to the repository and rewritten by the daily Action. It cannot be diffed or merged. Concurrent runs can race on push, and `.github/workflows/collect.yml` pushes without a pull or rebase, so a racing push simply loses. Every collection run adds a full copy of the file to git history.
+**Why it has not bitten yet**: Item volume is low and there is one operator. Wave 2 (Phase 6) adds five sources including scrapers, which raises both the write rate and the size.
+**Options, not yet weighed**: a hosted Postgres (Supabase, Neon); keeping SQLite but hosting the file (Litestream, Turso); or keeping the current design and serialising the workflow with a concurrency group, which fixes the race but not the diffing or the history bloat.
+**Status**: Open. To be decided before Phase 6 starts, per the roadmap. D-008 (SQLite as system of record) is not in question here; where the file lives is.
+
 ## Open items
 
 - TBD: MiCA theme tag. Deferred until item volume justifies it (see taxonomy section 9).
 - Notion workspace structure: resolved by D-018.
-- TBD: Urgent alert delivery channel (email vs other). To be decided in Phase 4.
-- TBD: U-1 reference list of client-relevant systems (see scoring criteria section 12).
+- TBD: Urgent alert delivery channel. Partly addressed by D-024: the channel interface exists and file and console are built. What is still open is whether Urgent items get their own immediate path rather than waiting for the next digest. Needs the email channel first (Phase 7).
+- TBD: U-1 reference list of client-relevant systems (see scoring criteria section 12). Still the proper fix for D-020.
+- OPEN: D-025, move the database off git. To be decided before Phase 6.
+- TBD: Replace the example clients in `config/clients.yaml` with real ones. Nothing can be sent to a real recipient until this happens, which is deliberate.

@@ -52,9 +52,16 @@ LEVELS = ("Urgent", "High", "Standard", "Low")
 DISCARD_RULES = ("AD-2", "AD-3")
 CONFIDENCE = ("high", "medium", "low")
 
-# Every rules_applied entry must be a rule ID from scoring-criteria.md v1.1
-# (D-019). Free text is a validation failure, not a stylistic preference.
-RULE_ID_RE = re.compile(r"^(AD|U|H|W|F|S|L)-\d+$")
+# Every rules_applied entry must be a rule ID from scoring-criteria.md (D-019).
+# Free text is a validation failure, not a stylistic preference.
+#
+# F rules are excluded here on purpose (D-021 defect 2). The prompt says flag
+# rules belong in flag_rules and rules_applied holds only the rules that
+# determined the outcome. The old pattern accepted F- in both, so prompt and
+# validator disagreed and the model put F-2 in rules_applied on 12 of 13
+# flagged items. The two fields are now validated separately.
+RULE_ID_RE = re.compile(r"^(AD|U|H|W|S|L)-\d+$")
+FLAG_RULE_ID_RE = re.compile(r"^F-\d+$")
 
 ROOT = Path(__file__).resolve().parent.parent
 PROMPT_PATH = ROOT / "src" / "triage_prompt.md"
@@ -242,9 +249,10 @@ def validate(result: object, taxonomy: Taxonomy) -> list[str]:
         for rule in rules:
             if not RULE_ID_RE.match(rule):
                 errors.append(
-                    f"rules_applied entry {rule!r} is not a rule ID. Use only bare IDs "
-                    "such as AD-2, U-1, H-3, S-1, L-1, W-2. No free text, no explanation, "
-                    "and no rules you considered and rejected."
+                    f"rules_applied entry {rule!r} is not a level, weighting, or discard "
+                    "rule ID. Use only bare IDs such as AD-2, U-1, H-3, S-1, L-1, W-2. "
+                    "Flag rules (F-1 to F-4) belong in flag_rules, not here. No free text, "
+                    "no explanation, and no rules you considered and rejected."
                 )
 
     if not isinstance(result.get("summary"), str) or not result["summary"].strip():
@@ -257,6 +265,17 @@ def validate(result: object, taxonomy: Taxonomy) -> list[str]:
     flag_rules = result.get("flag_rules")
     if not isinstance(flag_rules, list) or not all(isinstance(r, str) for r in flag_rules):
         errors.append(f"flag_rules must be a list of strings, got {flag_rules!r}")
+    else:
+        for rule in flag_rules:
+            if not FLAG_RULE_ID_RE.match(rule):
+                errors.append(
+                    f"flag_rules entry {rule!r} is not a flag rule ID. Use only F-1 to "
+                    "F-4. Level, weighting, and discard rules belong in rules_applied."
+                )
+        if flagged is True and not flag_rules:
+            errors.append("flag_rules must name the F rule that triggered the flag")
+        if flagged is False and flag_rules:
+            errors.append(f"flag_rules must be empty when flagged is false, got {flag_rules!r}")
 
     if not isinstance(result.get("flag_reason"), str):
         errors.append(f"flag_reason must be a string, got {result.get('flag_reason')!r}")

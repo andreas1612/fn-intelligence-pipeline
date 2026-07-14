@@ -110,10 +110,28 @@ Approved intelligence is routed to clients by matching each item's taxonomy tags
 against a client interest profile. This is the "client-specific tag views"
 deferred to Phase 6 in the taxonomy (section 9). See section 6 below.
 
-### Stage 5: Distribute (roadmap)
+### Stage 5: Distribute (`src/distribute/`)
 
-Per-client digests and urgent alerts, driven off the `matches` ledger's
-`delivered_at` column. Not yet built. See the roadmap.
+Each client gets a Markdown digest of the matches not yet sent to them, grouped
+by level, showing the summary triage wrote and the reason the item matched. No
+model is called: the digest reuses `ai_summary`, which a human has already seen
+and approved.
+
+Channels are output plugins, symmetric with collectors on the intake side: one
+per destination behind a `deliver` interface, selected in
+`config/distribution.yaml`. `file` and `console` are built; email is deferred to
+Phase 7 (D-024).
+
+`delivered_at` is the idempotency key. It is stamped only after a channel reports
+success, so a delivered match is never re-sent and a failed send is retried on
+the next run. Distribution also re-checks the human gate at send time, because a
+reviewer can move an item back to New or Discarded after it was matched.
+
+### The orchestrator (`src/pipeline.py`)
+
+Runs the whole cycle in order: collect, triage, push, pull, match, distribute. It
+stops at the first failure, because each stage consumes the output of the one
+before it. `--dry-run` previews everything and writes, sends, and charges nothing.
 
 ---
 
@@ -184,7 +202,9 @@ Written by `src/matching.py`. One row per approved item / client pair:
 ├── finalogic.db                  # SQLite system of record (committed, D-008)
 ├── .github/workflows/collect.yml # daily collection on GitHub Actions
 ├── config/
-│   └── clients.yaml              # client register (interest profiles)
+│   ├── clients.yaml              # client register (interest profiles)
+│   └── distribution.yaml         # which channel digests are delivered on
+├── data/                         # delivered digests (gitignored, D-024)
 ├── docs/
 │   ├── DECISIONS.md              # decision log (D-001..; locked choices)
 │   ├── ROADMAP.md                # phased build plan and status
@@ -192,23 +212,36 @@ Written by `src/matching.py`. One row per approved item / client pair:
 │   ├── scoring-criteria.md       # relevance and urgency rules (locked)
 │   ├── finalogic-source-register.md
 │   ├── feed-verification.md
-│   └── phase3-*.md
+│   └── phase3-*.md, phase5-*.md
 ├── logs/
 │   └── triage_runs.jsonl         # per-run counts, tokens, cost
+├── tests/                        # pytest: run `pytest` from the repo root
+│   ├── conftest.py               # temporary database, never finalogic.db
+│   ├── test_matching.py          # the matching rule: overlap, level gate, scoring
+│   ├── test_triage_validation.py # model output validation
+│   ├── test_taxonomy.py          # the taxonomy parser
+│   └── test_distribution.py      # the human gate and the idempotency guard
 └── src/
     ├── db.py                     # SQLite schema and item insert
     ├── migrate.py                # additive triage-column migration
     ├── sources.py                # verified feed URLs
-    ├── collectors/               # per-source fetch and normalisation
+    ├── pipeline.py               # full-cycle orchestrator, with --dry-run
+    ├── collectors/               # INTAKE plugins, one per source
     │   ├── base.py               # shared RSS fetch, logging, timestamps
-    │   ├── eba.py, esma.py, cert_eu.py, cisa_kev.py
+    │   └── eba.py, esma.py, cert_eu.py, cisa_kev.py
     ├── run.py                    # run all collectors, report health
     ├── triage.py                 # AI triage, validation, run log
     ├── triage_prompt.md          # approved prompt template
     ├── notion_sync.py            # Notion push and pull, override logging
     ├── clients.py                # client register seeding and validation
-    └── matching.py               # deterministic client matching engine
+    ├── matching.py               # deterministic client matching engine
+    └── distribute/               # OUTPUT plugins, one per channel
+        ├── digest.py             # per-client Markdown digest from the ledger
+        └── channels.py           # file, console (email deferred to Phase 7)
 ```
+
+The shape is symmetric. `collectors/` are intake plugins, `distribute/` are
+output plugins, and the deterministic core sits between them.
 
 ---
 
@@ -361,11 +394,46 @@ python -m src.clients seed
 # 5. Match approved items to clients
 python -m src.matching run
 python -m src.matching report
+
+# 6. Distribute: build and send the per-client digests
+python -m src.distribute.digest --client "Bank (example)"   # preview, writes nothing
+python -m src.distribute.digest --all                       # preview every client
+python -m src.distribute.digest --all --send                # deliver and mark delivered
+python -m src.distribute.digest --all --send --channel console
 ```
 
 Matching should run after `notion_sync pull`, since the pull is what sets
 `review_status`. Use `python -m src.matching preview` at any time to see how
 matching would behave over the full triaged backlog.
+
+Distribution sends nothing without `--send`. Without it you get the digest on
+stdout and nothing is marked delivered. With it, each client's digest goes to the
+channel named in `config/distribution.yaml` and those matches are stamped
+`delivered_at`, so the next run sends nothing.
+
+### The whole cycle at once
+
+```bash
+python -m src.pipeline --dry-run              # preview everything; no writes, no cost
+python -m src.pipeline                        # collect, push, pull, match
+python -m src.pipeline --triage --distribute  # the full cycle
+python -m src.pipeline --only match distribute
+python -m src.pipeline --skip collect
+```
+
+`triage` and `distribute` are opt-in on a live run: one spends money, the other
+sends things. A dry run previews both for free. The pipeline stops at the first
+failing stage rather than running on partial data.
+
+### Tests
+
+```bash
+pytest
+```
+
+Covers the matching rule, triage output validation, the taxonomy parser, and the
+human gate plus the idempotency guard. Tests build a temporary database from the
+real schema code and never touch `finalogic.db`.
 
 ---
 
@@ -405,14 +473,18 @@ require human input), so they are not on the daily schedule.
   Action. This is fine at proof-of-concept scale (decision D-008), but before a
   client-facing launch it should move to a hosted database. The git history
   bloats with a daily binary blob, and a scheduled run overlapping a manual
-  dispatch could race on `git push`.
-- **Distribution not built**: stage 5 is the roadmap. The `matches.delivered_at`
-  column is the hook. The plan is per-client digests and urgent alerts.
+  dispatch could race on `git push`. This is proposed D-025, to be decided before
+  Phase 6, when Wave 2 raises both the write rate and the file size.
+- **The clients are examples**: every entry in `config/clients.yaml` is a
+  placeholder. Nothing can reach a real recipient until they are replaced, which
+  is deliberate.
+- **No email channel**: `file` and `console` are built. SendGrid is the locked
+  stack (D-003) but delivery to a real address is Phase 7 (D-024).
+- **Urgent items wait for the digest**: there is no separate immediate alert path
+  yet. The channel interface is the hook for one.
 - **Newsletter ingestion**: current collectors are RSS and JSON feeds. Inbound
   newsletter parsing is a planned collector; anything ingested must still pass
   through taxonomy triage so it remains matchable.
-- **No automated tests**: the validation and parsing logic in `triage.py` and the
-  matching logic are good candidates for a small pytest suite.
 
 ---
 
@@ -424,8 +496,13 @@ require human input), so they are not on the daily schedule.
 | 2 | Collectors, SQLite, dedup, health checks, daily Action | Done |
 | 3 | AI triage, taxonomy, scoring, Notion review, overrides | Done |
 | 4 | Client matching (register, profiles, deterministic engine) | Done |
-| 5 | Distribution (per-client digests, urgent alerts) | Next |
-| 6 | White-label, per-client branded delivery (e.g. email) | Planned |
+| 5 | Distribution (digests, channels, orchestrator, tests) | Done |
+| 6 | Coverage expansion (Wave 2 sources, threshold tuning) | Next |
+| 7 | White-label (email via SendGrid, branded templates) | Planned |
+
+Phases were renumbered on 2026-07-14 (D-023): distribution took Phase 5, so
+coverage expansion moved to 6 and white-label to 7. Decisions D-015, D-018, and
+D-020 predate this and say "Phase 5" where they mean coverage expansion.
 
 `docs/ROADMAP.md` holds the detailed checklist and current status.
 

@@ -13,7 +13,7 @@ Read `README.md` for architecture, then `docs/DECISIONS.md` for locked choices, 
 3. **Controlled taxonomy and scoring**: Tag only from `docs/taxonomy-v1.0.md`. Score only per `docs/scoring-criteria.md`. No ad hoc tags or levels.
 4. **Simple and boring wins**: Standard library and minimal dependencies (feedparser, requests, BeautifulSoup, anthropic, notion sdk). No orchestration frameworks. No agents.
 5. **SQLite is the system of record**: One database file, committed to the repo after each collection run. Notion is a view for human review, not the source of truth.
-6. **PoC scope governs**: Build only the Wave 1 and Wave 2 sources defined at the top of `docs/finalogic-source-register.md`. Everything else is Phase 5 backlog.
+6. **PoC scope governs**: Build only the Wave 1 and Wave 2 sources defined at the top of `docs/finalogic-source-register.md`. Everything else is Phase 6 (coverage expansion) backlog.
 
 ## Conventions
 
@@ -26,4 +26,13 @@ Read `README.md` for architecture, then `docs/DECISIONS.md` for locked choices, 
 
 ## Current status
 
-Phase 1 complete. Phase 2 active: Wave 1 collectors (EBA, ESMA, ENISA, CERT-EU, CISA KEV), SQLite schema, dedup, health checks, GitHub Actions workflow. See `docs/ROADMAP.md` for the checklist.
+Phases 1 to 5 complete: foundations, Wave 1 collectors, AI triage with the Notion
+review board, client matching, and distribution (per-client digest, file and console
+channels, full-cycle orchestrator, first test suite).
+
+Next: Phase 6, coverage expansion (Wave 2 sources, starting with the CySEC scraper).
+
+Phase numbering changed on 2026-07-14 (D-023). Distribution was built as Phase 5 and
+coverage expansion moved to Phase 6. Decisions D-015, D-018, and D-020 predate this
+and use "Phase 5" to mean coverage expansion and threshold tuning; read those as
+Phase 6. See `docs/ROADMAP.md` for the authoritative phase list.
