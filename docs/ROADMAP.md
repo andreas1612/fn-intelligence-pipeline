@@ -1,6 +1,6 @@
 # Roadmap and Status
 
-Last updated: 2026-07-14
+Last updated: 2026-07-16
 
 ## Phase numbering note (D-023)
 
@@ -59,11 +59,12 @@ Design approved 2026-07-09 (D-016 to D-018). Build spec: `docs/phase3-build-spec
 
 ## Phase 6: Coverage expansion [NEXT]
 
+- [x] Resolve the database-in-git problem before source volume grows (D-025, decided 2026-07-16: stays in git for the PoC, workflow serialised with a concurrency group and pre-push rebase)
 - [ ] PoC Wave 2: CySEC scraper, CBC scraper, European AI Office, EUR-Lex OJ, ENISA scraper (D-012)
+- [ ] ECB/SSM RSS collector, after the CySEC and CBC scrapers (scope addition, D-027)
 - [ ] Remaining Tier 1 sources onboarded per register priority
 - [ ] Tier 2 sources onboarded selectively
-- [ ] Scoring thresholds tuned from the override log (this is the "Phase 5 tuning" referred to in D-018 and D-020)
-- [ ] Resolve the database-in-git problem before source volume grows (proposed D-025)
+- [ ] Scoring thresholds tuned from the override log (this is the "Phase 5 tuning" referred to in D-018 and D-020; needs a one-model re-triage first, per D-026 risk 3)
 
 ## Phase 7: White-label
 

@@ -538,11 +538,11 @@ require human input), so they are not on the daily schedule.
 ## 12. Known limitations and next steps
 
 - **Database in git**: `finalogic.db` is committed and rewritten by the daily
-  Action. This is fine at proof-of-concept scale (decision D-008), but before a
-  client-facing launch it should move to a hosted database. The git history
-  bloats with a daily binary blob, and a scheduled run overlapping a manual
-  dispatch could race on `git push`. This is proposed D-025, to be decided before
-  Phase 6, when Wave 2 raises both the write rate and the file size.
+  Action. Decided for the PoC (D-025, 2026-07-16): it stays in git, with the
+  workflow serialised by a concurrency group and a pre-push rebase so runs
+  cannot race. The git history still bloats with a daily binary blob; before a
+  client-facing launch the file should move to hosted SQLite (Turso or
+  Litestream). D-008 is unchanged: SQLite remains the system of record.
 - **The clients are examples**: every entry in `config/clients.yaml` is a
   placeholder. Nothing can reach a real recipient until they are replaced, which
   is deliberate.

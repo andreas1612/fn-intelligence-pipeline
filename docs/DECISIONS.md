@@ -159,12 +159,13 @@ Recorded retrospectively. Phase 4 built the matching layer; this entry states th
 **Tests** (`tests/`, pytest): Cover the matching rule, triage output validation, the taxonomy parser, and the human gate plus idempotency. These are the places where a regression is silent: it shows up as an unreviewed item in a client's inbox or a digest sent twice, not as an error. Tests run against a temporary database built by the real schema code, never against `finalogic.db`. pytest is the only new dependency and ships nothing to production.
 **D-021 defect 2 closed here**: The pending validator fix was applied. `rules_applied` now accepts only `^(AD|U|H|W|S|L)-\d+$` and `flag_rules` is validated separately as `^F-\d+$`. Prompt and validator now agree. Not a re-triage trigger: the 12 affected rows are all flagged, so a reviewer sees them, and the fix governs future runs.
 
-## D-025 (PROPOSED, not decided): Move the database off git (2026-07-14)
+## D-025: Database stays in git for the PoC, workflow serialised (2026-07-14, decided 2026-07-16)
 
 **Problem**: `finalogic.db` is a 1.1 MB SQLite binary committed to the repository and rewritten by the daily Action. It cannot be diffed or merged. Concurrent runs can race on push, and `.github/workflows/collect.yml` pushes without a pull or rebase, so a racing push simply loses. Every collection run adds a full copy of the file to git history.
 **Why it has not bitten yet**: Item volume is low and there is one operator. Wave 2 (Phase 6) adds five sources including scrapers, which raises both the write rate and the size.
-**Options, not yet weighed**: a hosted Postgres (Supabase, Neon); keeping SQLite but hosting the file (Litestream, Turso); or keeping the current design and serialising the workflow with a concurrency group, which fixes the race but not the diffing or the history bloat.
-**Status**: Open. To be decided before Phase 6 starts, per the roadmap. D-008 (SQLite as system of record) is not in question here; where the file lives is.
+**Options weighed**: a hosted Postgres (Supabase, Neon); keeping SQLite but hosting the file (Litestream, Turso); or keeping the current design and serialising the workflow with a concurrency group, which fixes the race but not the diffing or the history bloat.
+**Decision (2026-07-16)**: The database stays committed to git for the PoC. The race is fixed in the workflow: a concurrency group serialises collection runs, and the job rebases onto origin before pushing, so a non-conflicting remote change no longer loses the push. A rebase conflict on the binary fails the job loudly (per D-009) rather than losing data silently. History bloat and undiffability are accepted at PoC scale.
+**Revisit**: Before a client-facing launch, move the file to hosted SQLite (Turso, or Litestream to object storage). Postgres is not justified at this volume and would rewrite working code for no capability gain. D-008 is unchanged: SQLite remains the system of record; only where the file lives was in question. D-008 (SQLite as system of record) is not in question here; where the file lives is.
 
 ## D-026: Triage provider is kie.ai, not the Claude API. Supersedes D-003 and D-016 on model choice (2026-07-14)
 
@@ -185,11 +186,17 @@ Recorded retrospectively. Phase 4 built the matching layer; this entry states th
 
 **Reversal**: Set `KIE_MODEL` to another slug, or restore an Anthropic client in `src/llm.py`. Nothing above that file changes. That is the point of the structure.
 
+## D-027: ECB/SSM added to PoC scope, built after the Cyprus scrapers (2026-07-16)
+
+**Decision**: ECB/SSM joins the PoC source list as a scope addition beyond the locked Wave 2 list. It is built as an RSS collector in the existing Wave 1 pattern, sequenced after the CySEC and CBC scrapers.
+**Rationale**: Owner request. ECB/SSM is Tier 1 in the register (prudential supervision, cyber resilience expectations for significant institutions) and cheap to add if the RSS feed verifies. The Cyprus scrapers stay first: they are the commercial differentiator and the largest coverage gap, while ECB content partially overlaps what EBA and ESMA already provide.
+**Scope note**: D-010 ("build only Wave 1 and Wave 2") is amended by this entry, not broken ad hoc: the PoC list is now Wave 1, Wave 2, plus ECB/SSM. The register rule stands: the feed URL must be verified against the live site before the collector is coded.
+
 ## Open items
 
 - TBD: MiCA theme tag. Deferred until item volume justifies it (see taxonomy section 9).
 - Notion workspace structure: resolved by D-018.
 - TBD: Urgent alert delivery channel. Partly addressed by D-024: the channel interface exists and file and console are built. What is still open is whether Urgent items get their own immediate path rather than waiting for the next digest. Needs the email channel first (Phase 7).
 - TBD: U-1 reference list of client-relevant systems (see scoring criteria section 12). Still the proper fix for D-020.
-- OPEN: D-025, move the database off git. To be decided before Phase 6.
+- RESOLVED 2026-07-16: D-025 decided. The database stays in git for the PoC with the collection workflow serialised; hosted SQLite is the pre-launch revisit.
 - TBD: Replace the example clients in `config/clients.yaml` with real ones. Nothing can be sent to a real recipient until this happens, which is deliberate.

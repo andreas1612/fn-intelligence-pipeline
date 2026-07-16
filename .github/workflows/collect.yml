@@ -9,6 +9,14 @@ on:
 permissions:
   contents: write
 
+# One collection run at a time (D-025). A scheduled run overlapping a manual
+# dispatch would race on the finalogic.db commit; the loser's push would fail
+# and its collected items would be lost. Queued, not cancelled: both runs
+# still happen, just in sequence.
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
 jobs:
   collect:
     runs-on: ubuntu-latest
@@ -36,6 +44,9 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Collect: update finalogic.db"
+            # Rebase onto anything pushed since checkout (D-025). A conflict on
+            # the binary fails the job loudly rather than losing data silently.
+            git pull --rebase origin main
             git push
           fi
 
