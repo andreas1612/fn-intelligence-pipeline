@@ -34,12 +34,33 @@ def test_no_overlap_is_not_a_match():
     assert result is None
 
 
-def test_jurisdiction_outweighs_sector_which_outweighs_theme():
-    j = matching.score_match(set(), {"EU"}, set(), profile(jurisdictions=["EU"]))
-    s = matching.score_match({"Insurance"}, set(), set(), profile(sectors=["Insurance"]))
-    t = matching.score_match(set(), set(), {"DORA"}, profile(themes=["DORA"]))
-    assert j[0] > s[0] > t[0]
-    assert (j[0], s[0], t[0]) == (3.0, 2.0, 1.0)
+def test_jurisdiction_alone_is_not_a_match():
+    # D-028: nearly every item and client is EU, so jurisdiction-only overlap
+    # routed every EU item to every EU client. A shared sector or theme is now
+    # required. Here the only overlap is jurisdiction (EU), so it must not match.
+    result = matching.score_match(
+        {"Insurance"}, {"EU"}, {"AI security"},
+        profile(sectors=["Investment firms"], jurisdictions=["EU"], themes=["DORA"]),
+    )
+    assert result is None
+
+
+def test_weights_are_jurisdiction_3_sector_2_theme_1():
+    # A match needs a sector or theme; jurisdiction only adds to a match that
+    # already exists. Isolate each weight by its marginal contribution over a
+    # theme-only baseline.
+    theme_only = matching.score_match(set(), set(), {"DORA"}, profile(themes=["DORA"]))[0]
+    plus_sector = matching.score_match(
+        {"Insurance"}, set(), {"DORA"}, profile(sectors=["Insurance"], themes=["DORA"])
+    )[0]
+    plus_jurisdiction = matching.score_match(
+        set(), {"EU"}, {"DORA"}, profile(jurisdictions=["EU"], themes=["DORA"])
+    )[0]
+    assert theme_only == 1.0
+    assert plus_sector - theme_only == 2.0          # sector weight
+    assert plus_jurisdiction - theme_only == 3.0    # jurisdiction weight
+    # Ordering the weights encode: jurisdiction > sector > theme.
+    assert 3.0 > 2.0 > 1.0
 
 
 def test_score_sums_every_overlapping_tag():
@@ -66,10 +87,13 @@ def test_matched_on_names_every_reason():
 
 
 def test_matched_on_omits_dimensions_that_did_not_overlap():
+    # Shares theme and jurisdiction but not sector (Insurance vs Banks), so the
+    # sector dimension is omitted from the reason.
     _, reason = matching.score_match(
-        {"Insurance"}, {"EU"}, set(), profile(jurisdictions=["EU"], sectors=["Banks"]),
+        {"Insurance"}, {"EU"}, {"DORA"},
+        profile(jurisdictions=["EU"], sectors=["Banks"], themes=["DORA"]),
     )
-    assert reason == "jurisdiction: EU"
+    assert reason == "jurisdiction: EU; theme: DORA"
 
 
 # --- Level gate -----------------------------------------------------------

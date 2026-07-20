@@ -302,8 +302,11 @@ nothing is seeded, so a client profile can never drift from the taxonomy.
 
 An item matches a client when both hold:
 
-1. **Overlap**: the item shares at least one sector, jurisdiction, or theme with
-   the client profile.
+1. **Overlap**: the item shares at least one **sector or theme** with the client
+   profile. Jurisdiction alone is not enough (D-028): nearly every item and
+   client is EU, so matching on jurisdiction by itself routed every EU item to
+   every EU client. A shared jurisdiction still boosts the score and is named in
+   the match reason when a real sector or theme overlap exists.
 2. **Level gate**: the item's level is at least as urgent as the client's
    `min_level`, where Urgent > High > Standard > Low. A client on `Standard`
    receives Urgent, High, and Standard items, but not Low.
@@ -317,7 +320,10 @@ score = 3.0 * (shared jurisdictions)
       + 1.0 * (shared themes)
 ```
 
-Weights are constants at the top of `src/matching.py`.
+Weights are constants at the top of `src/matching.py`. Jurisdiction keeps the
+highest weight because it still routes same-jurisdiction items more strongly and
+will prioritise Cyprus items once the Cyprus sources land; it just no longer
+matches on its own.
 
 ### The human gate is enforced
 

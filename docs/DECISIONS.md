@@ -192,6 +192,18 @@ Recorded retrospectively. Phase 4 built the matching layer; this entry states th
 **Rationale**: Owner request. ECB/SSM is Tier 1 in the register (prudential supervision, cyber resilience expectations for significant institutions) and cheap to add if the RSS feed verifies. The Cyprus scrapers stay first: they are the commercial differentiator and the largest coverage gap, while ECB content partially overlaps what EBA and ESMA already provide.
 **Scope note**: D-010 ("build only Wave 1 and Wave 2") is amended by this entry, not broken ad hoc: the PoC list is now Wave 1, Wave 2, plus ECB/SSM. The register rule stands: the feed URL must be verified against the live site before the collector is coded.
 
+## D-028: Matching requires a shared sector or theme; jurisdiction alone is not a match (2026-07-20)
+
+**Decision**: An item matches a client only if they share at least one sector or theme tag. A shared jurisdiction on its own no longer creates a match. When a match already exists on a sector or theme, a shared jurisdiction still adds to the score and is still named in `matched_on`, so it remains a routing signal, just not a standalone reason. This supersedes the overlap clause of D-023 only; the level gate, the weights (jurisdiction 3, sector 2, theme 1), the "no AI in matching" rule, and the ledger design all stand.
+
+**Trigger**: The first full match run over the reviewed backlog produced 138 item-client pairs, most of them noise. In the Cyprus EMI digest, about 26 of 32 items matched on `jurisdiction: EU` and nothing else, including a run of CERT-EU vulnerability advisories the EMI profile never asked for (its themes are DORA, ICT incident reporting, Payments and e-money, AML and financial crime, with no cyber theme). Because nearly every item and every client is EU, jurisdiction-only overlap routed almost everything to almost everyone.
+
+**Rationale**: Jurisdiction is too broad to be a relevance signal by itself under the current source set. Sector and theme are what express a client's actual interest, so requiring one of them is the smallest change that removes the flood without touching the weights, the level gate, or the taxonomy. Jurisdiction keeps its scoring weight because it still routes same-jurisdiction items more strongly, and it is the mechanism that will prioritise Cyprus items over EU-wide ones once the Cyprus sources land (scoring W-2).
+
+**Effect**: Clients now receive only items sharing a sector or theme in their profile. A client that wants cyber advisories lists the relevant theme; one that does not no longer receives them. This does not fix CISA KEV per-CVE noise, which still reaches themed clients on the cyber theme and needs the client-relevant systems list (scoring section 12); that is a separate change.
+
+**Not a re-triage trigger**: Triage output is unchanged; only routing changes. The example-client match ledger was rebuilt under the new rule. No real client data exists yet, so nothing of value was rewritten.
+
 ## Open items
 
 - TBD: MiCA theme tag. Deferred until item volume justifies it (see taxonomy section 9).
