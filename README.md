@@ -408,8 +408,8 @@ Run the stages in order. Each stage is idempotent and safe to re-run.
 python -m src.run
 
 # 2. Triage untriaged items
-python -m src.triage run                 # add --limit N to bound a run
-python -m src.triage run --dry-run       # build prompts, no API calls, no writes
+python -m src.triage                     # add --limit N to bound a run
+python -m src.triage --dry-run           # build prompts, no API calls, no writes
 
 # 3. Human review
 python -m src.notion_sync push           # create pages for newly triaged items
