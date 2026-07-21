@@ -1,4 +1,4 @@
-# Feed Verification
+﻿# Feed Verification
 
 Every feed URL is verified against the live site before its collector is coded. The
 source register asserts no exact URLs on purpose. This file is the evidence.
@@ -138,6 +138,33 @@ never from a search engine or a third-party feed directory.
 
 **Collector result (2026-07-21):** First run fetched 10 items, inserted 10. Immediate re-run fetched 10, inserted 0, confirming content-hash dedup.
 
+## NCSC UK
+
+**Status:** Verified.
+**Verification date:** 2026-07-21.
+**URL:** `https://www.ncsc.gov.uk/api/1/services/v1/news-rss-feed.xml`
+**Format:** RSS 2.0 (`Content-Type: application/rss+xml; charset=utf-8`, feedparser `rss20`, `bozo=False`).
+**Sample item count:** 20 entries, newest 2026-07-13 at time of check.
+**Evidence:** Channel title `News Feed`. Entries link to `ncsc.gov.uk/news/...`, for example:
+- 2026-07-13 "UK and Allies urge critical sectors to improve defences against Russian intelligence targeting"
+- 2026-06-18 "Alert: NCSC issues advice following global targeting of Fortinet firewalls and VPN gateways"
+- 2026-06-22 "The AI shift in cyber risk: why leaders must act now"
+
+**How the URL was found:** NCSC publishes a feeds page at `https://www.ncsc.gov.uk/information/rss-feeds`, linked from its own site header. That page lists five official feeds, all under `/api/1/services/v1/`: All, Guidance, News, Blog posts, and Threat Reports. The URL above is taken directly from that page.
+
+**Why the News feed and not the others:** This follows the CERT-EU precedent, where the collector deliberately takes the Security Advisories feed and other content types are out of scope. The News feed is NCSC's alerts and advisories stream, which is the actionable content D-029 asked for. The other four were checked before choosing:
+
+- **All** (`all-rss-feed.xml`): despite the name it is not everything. Its 20 entries were 13 blog posts and 7 news items, with no guidance and no reports. Blog-heavy commentary, so rejected.
+- **Guidance** (`guidance-rss-feed.xml`): valid, but slow moving. Newest entry 2026-03-19, four months old at time of check.
+- **Threat Reports** (`report-rss-feed.xml`): valid, but the newest entry was 2025-05-07 and the feed reaches back to 2023. Reference material, not a routine stream.
+- **Blog posts** (`blog-post-rss-feed.xml`): commentary, not intelligence.
+
+Guidance and Threat Reports remain candidates if a reviewer wants the reference material. Both are stale enough that adding them now would mostly import an ageing backlog, so they are left out rather than assumed in.
+
+**Jurisdiction note:** NCSC UK is the first routine International-jurisdiction source (D-029). This is what exercises D-028: International items cannot match on jurisdiction alone, so they reach a client only on a shared sector or theme. No taxonomy change was needed, since International already exists.
+
+**Collector result (2026-07-21):** First run fetched 20 items, inserted 20. Immediate re-run fetched 20, inserted 0, confirming content-hash dedup.
+
 ## Wave 2 expansion summary
 
 | Source | Result | Feed URL |
@@ -145,7 +172,7 @@ never from a search engine or a third-party feed directory.
 | EIOPA | Verified 2026-07-21 | `https://www.eiopa.europa.eu/node/4816/rss_en` |
 | European Commission (AI) | Verified 2026-07-21 | `https://digital-strategy.ec.europa.eu/en/rss.xml` |
 | EDPB | Verified 2026-07-21 | `https://www.edpb.europa.eu/rss.xml` |
-| NCSC UK | Not yet verified | TBD |
+| NCSC UK | Verified 2026-07-21 | `https://www.ncsc.gov.uk/api/1/services/v1/news-rss-feed.xml` |
 | ECB / SSM | Not yet verified | TBD |
 
 ---
@@ -155,4 +182,4 @@ never from a search engine or a third-party feed directory.
 Recorded when a previously verified feed fails, so a transient upstream outage is not
 mistaken later for a wrong URL.
 
-- **EBA, 2026-07-21**: `https://www.eba.europa.eu/news-press/news/rss.xml` returned HTTP 502 with an "EBA | Maintenance" HTML page instead of the feed. The collector failed loudly and `src/run.py` exited non-zero, per D-009. The URL is unchanged and is not re-verified as broken on this basis: recheck when the site is back. Note that `fetch_rss` reports this as a parse failure, because feedparser fetches the URL itself and does not check the HTTP status; the run still fails, which is the requirement.
+- **EBA, 2026-07-21**: `https://www.eba.europa.eu/news-press/news/rss.xml` returned HTTP 502 with an "EBA | Maintenance" HTML page instead of the feed. The collector failed loudly and `src/run.py` exited non-zero, per D-009. The URL is unchanged and is not re-verified as broken on this basis. Recovered the same day: a later run in the same session fetched 10 items from the same URL with no code change, confirming a transient outage rather than a retired feed. Note that `fetch_rss` reports this as a parse failure, because feedparser fetches the URL itself and does not check the HTTP status; the run still fails, which is the requirement.

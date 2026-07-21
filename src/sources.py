@@ -40,4 +40,10 @@ SOURCES = {
         "feed_url": "https://www.edpb.europa.eu/rss.xml",
         "feed_type": "rss",
     },
+    "NCSC_UK": {
+        # News feed: the alerts and advisories stream. NCSC also publishes separate
+        # guidance, report, and blog feeds, out of scope as CERT-EU's are.
+        "feed_url": "https://www.ncsc.gov.uk/api/1/services/v1/news-rss-feed.xml",
+        "feed_type": "rss",
+    },
 }

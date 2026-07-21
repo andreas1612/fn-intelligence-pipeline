@@ -3,7 +3,7 @@
 import sys
 
 from src import db
-from src.collectors import cert_eu, cisa_kev, eba, ec_digital, edpb, eiopa, esma
+from src.collectors import cert_eu, cisa_kev, eba, ec_digital, edpb, eiopa, esma, ncsc_uk
 from src.collectors.base import logger
 
 COLLECTORS = {
@@ -14,6 +14,7 @@ COLLECTORS = {
     "EIOPA": eiopa.collect,
     "EC_DIGITAL": ec_digital.collect,
     "EDPB": edpb.collect,
+    "NCSC_UK": ncsc_uk.collect,
 }
 
 

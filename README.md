@@ -1,4 +1,4 @@
-# Finalogic Intelligence Pipeline
+﻿# Finalogic Intelligence Pipeline
 
 Structured regulatory and cybersecurity intelligence for Finalogic Ltd. The
 pipeline monitors official sources, triages each item with AI against a
@@ -80,6 +80,7 @@ Wave 2 expansion (Phase 6, D-029), added as each feed is verified:
 | EIOPA | RSS | European Insurance and Occupational Pensions Authority news |
 | EC_DIGITAL | RSS | European Commission, Shaping Europe's Digital Future (AI Act and digital policy) |
 | EDPB | RSS | European Data Protection Board |
+| NCSC_UK | RSS | UK National Cyber Security Centre news and alerts |
 
 Health checks make zero-item runs visible and fail the job, so a silently broken
 feed is caught rather than passing as a quiet no-op.
@@ -222,54 +223,54 @@ Written by `src/matching.py`. One row per approved item / client pair:
 
 ```
 .
-├── README.md                     # this file
-├── CLAUDE.md                     # working context for Claude Code sessions
-├── requirements.txt
-├── .env.example                  # copy to .env; secrets go here (gitignored)
-├── finalogic.db                  # SQLite system of record (committed, D-008)
-├── .github/workflows/collect.yml # daily collection on GitHub Actions
-├── config/
-│   ├── clients.yaml              # client register (interest profiles)
-│   └── distribution.yaml         # which channel digests are delivered on
-├── data/                         # delivered digests (gitignored, D-024)
-├── docs/
-│   ├── DECISIONS.md              # decision log (D-001..; locked choices)
-│   ├── ROADMAP.md                # phased build plan and status
-│   ├── taxonomy-v1.0.md          # controlled tag vocabulary (locked)
-│   ├── scoring-criteria.md       # relevance and urgency rules (locked)
-│   ├── finalogic-source-register.md
-│   ├── feed-verification.md
-│   └── phase3-*.md, phase5-*.md
-├── logs/
-│   ├── triage_runs.jsonl         # per-run counts, tokens, cost
-│   ├── triage_items.jsonl        # per-item decisions WITH the source URL (audit trail)
-│   └── demo_items.jsonl          # demo output only (gitignored, truncated each run)
-├── tests/                        # pytest: run `pytest` from the repo root
-│   ├── conftest.py               # temporary database, never finalogic.db
-│   ├── test_matching.py          # the matching rule: overlap, level gate, scoring
-│   ├── test_triage_validation.py # model output validation
-│   ├── test_taxonomy.py          # the taxonomy parser
-│   └── test_distribution.py      # the human gate and the idempotency guard
-└── src/
-    ├── db.py                     # SQLite schema and item insert
-    ├── migrate.py                # additive triage-column migration
-    ├── sources.py                # verified feed URLs
-    ├── llm.py                    # THE ONLY model-aware code. Swap providers here.
-    ├── pipeline.py               # full-cycle orchestrator, with --dry-run
-    ├── demo.py                   # one-command live demo of the whole cycle
-    ├── collectors/               # INTAKE plugins, one per source
-    │   ├── base.py               # shared RSS fetch, logging, timestamps
-    │   └── eba.py, esma.py, cert_eu.py, cisa_kev.py,
-    │       eiopa.py, ec_digital.py, edpb.py
-    ├── run.py                    # run all collectors, report health
-    ├── triage.py                 # AI triage, validation, run log
-    ├── triage_prompt.md          # approved prompt template
-    ├── notion_sync.py            # Notion push and pull, override logging
-    ├── clients.py                # client register seeding and validation
-    ├── matching.py               # deterministic client matching engine
-    └── distribute/               # OUTPUT plugins, one per channel
-        ├── digest.py             # per-client Markdown digest from the ledger
-        └── channels.py           # file, console (email deferred to Phase 7)
+β”β”€β”€ README.md                     # this file
+β”β”€β”€ CLAUDE.md                     # working context for Claude Code sessions
+β”β”€β”€ requirements.txt
+β”β”€β”€ .env.example                  # copy to .env; secrets go here (gitignored)
+β”β”€β”€ finalogic.db                  # SQLite system of record (committed, D-008)
+β”β”€β”€ .github/workflows/collect.yml # daily collection on GitHub Actions
+β”β”€β”€ config/
+β”‚   β”β”€β”€ clients.yaml              # client register (interest profiles)
+β”‚   β””β”€β”€ distribution.yaml         # which channel digests are delivered on
+β”β”€β”€ data/                         # delivered digests (gitignored, D-024)
+β”β”€β”€ docs/
+β”‚   β”β”€β”€ DECISIONS.md              # decision log (D-001..; locked choices)
+β”‚   β”β”€β”€ ROADMAP.md                # phased build plan and status
+β”‚   β”β”€β”€ taxonomy-v1.0.md          # controlled tag vocabulary (locked)
+β”‚   β”β”€β”€ scoring-criteria.md       # relevance and urgency rules (locked)
+β”‚   β”β”€β”€ finalogic-source-register.md
+β”‚   β”β”€β”€ feed-verification.md
+β”‚   β””β”€β”€ phase3-*.md, phase5-*.md
+β”β”€β”€ logs/
+β”‚   β”β”€β”€ triage_runs.jsonl         # per-run counts, tokens, cost
+β”‚   β”β”€β”€ triage_items.jsonl        # per-item decisions WITH the source URL (audit trail)
+β”‚   β””β”€β”€ demo_items.jsonl          # demo output only (gitignored, truncated each run)
+β”β”€β”€ tests/                        # pytest: run `pytest` from the repo root
+β”‚   β”β”€β”€ conftest.py               # temporary database, never finalogic.db
+β”‚   β”β”€β”€ test_matching.py          # the matching rule: overlap, level gate, scoring
+β”‚   β”β”€β”€ test_triage_validation.py # model output validation
+β”‚   β”β”€β”€ test_taxonomy.py          # the taxonomy parser
+β”‚   β””β”€β”€ test_distribution.py      # the human gate and the idempotency guard
+β””β”€β”€ src/
+    β”β”€β”€ db.py                     # SQLite schema and item insert
+    β”β”€β”€ migrate.py                # additive triage-column migration
+    β”β”€β”€ sources.py                # verified feed URLs
+    β”β”€β”€ llm.py                    # THE ONLY model-aware code. Swap providers here.
+    β”β”€β”€ pipeline.py               # full-cycle orchestrator, with --dry-run
+    β”β”€β”€ demo.py                   # one-command live demo of the whole cycle
+    β”β”€β”€ collectors/               # INTAKE plugins, one per source
+    β”‚   β”β”€β”€ base.py               # shared RSS fetch, logging, timestamps
+    β”‚   β””β”€β”€ eba.py, esma.py, cert_eu.py, cisa_kev.py,
+    β”‚       eiopa.py, ec_digital.py, edpb.py, ncsc_uk.py
+    β”β”€β”€ run.py                    # run all collectors, report health
+    β”β”€β”€ triage.py                 # AI triage, validation, run log
+    β”β”€β”€ triage_prompt.md          # approved prompt template
+    β”β”€β”€ notion_sync.py            # Notion push and pull, override logging
+    β”β”€β”€ clients.py                # client register seeding and validation
+    β”β”€β”€ matching.py               # deterministic client matching engine
+    β””β”€β”€ distribute/               # OUTPUT plugins, one per channel
+        β”β”€β”€ digest.py             # per-client Markdown digest from the ledger
+        β””β”€β”€ channels.py           # file, console (email deferred to Phase 7)
 ```
 
 The shape is symmetric. `collectors/` are intake plugins, `distribute/` are
