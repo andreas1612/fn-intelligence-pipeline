@@ -1,9 +1,11 @@
-"""Verified Wave 1 feed URLs. See docs/feed-verification.md for evidence and dates.
+"""Verified feed URLs. See docs/feed-verification.md for evidence and dates.
 
 Update this file, not the individual collectors, when a feed URL changes.
 """
 
 SOURCES = {
+    # Wave 1
+
     "EBA": {
         "feed_url": "https://www.eba.europa.eu/news-press/news/rss.xml",
         "feed_type": "rss",
@@ -19,5 +21,12 @@ SOURCES = {
     "CISA_KEV": {
         "feed_url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
         "feed_type": "json",
+    },
+    # Wave 2 expansion (Phase 6, D-029)
+    "EIOPA": {
+        # Drupal node feed advertised by the RSS link on eiopa.europa.eu/media/news_en.
+        # The node id is the site's internal key: recheck if the feed starts 404ing.
+        "feed_url": "https://www.eiopa.europa.eu/node/4816/rss_en",
+        "feed_type": "rss",
     },
 }

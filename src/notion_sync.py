@@ -28,6 +28,7 @@ from notion_client.errors import APIResponseError
 
 from src import db, migrate
 from src.collectors.base import logger
+from src.sources import SOURCES as FEED_SOURCES
 from src.triage import LEVELS, TAXONOMY_PATH, load_taxonomy
 
 # The Notion API allows roughly 3 requests per second. Volume is tiny.
@@ -38,7 +39,9 @@ TEXT_CAP = 2000
 
 STATUSES = ("New", "Reviewed", "Published", "Discarded")
 CONFIDENCE = ("high", "medium", "low")
-SOURCES = ("EBA", "ESMA", "CERT-EU", "CISA_KEV")
+# Derived from the verified feed register, not a second copy of it: a source added
+# in src/sources.py must not need a matching edit here to appear on the board.
+SOURCES = tuple(FEED_SOURCES)
 
 # Placeholder used when a level is absent on either side of an override.
 # overrides.original_level and overrides.final_level are NOT NULL, but a

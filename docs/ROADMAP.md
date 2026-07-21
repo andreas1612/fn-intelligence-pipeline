@@ -1,6 +1,6 @@
 # Roadmap and Status
 
-Last updated: 2026-07-16
+Last updated: 2026-07-21
 
 ## Phase numbering note (D-023)
 
@@ -69,7 +69,7 @@ Done:
 
 6a. RSS and API collectors first (low build risk, fast volume). Verify each feed live before coding:
 
-- [ ] EIOPA (RSS) - the third ESA; activates the Insurance sector tag
+- [x] EIOPA (RSS) - the third ESA; activates the Insurance sector tag (`src/collectors/eiopa.py`; feed verified 2026-07-21, 30 items on first run, dedup confirmed on re-run)
 - [ ] European Commission, AI / Shaping Europe's Digital Future (RSS) - AI regulation theme volume
 - [ ] EDPB (RSS) - Data protection and privacy theme
 - [ ] NCSC UK (RSS) - cyber volume beyond CERT-EU and KEV; first International-jurisdiction source

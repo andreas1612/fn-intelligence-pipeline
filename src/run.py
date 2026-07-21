@@ -1,9 +1,9 @@
-"""Run all Wave 1 collectors, store items, and report per-source health."""
+"""Run all collectors, store items, and report per-source health."""
 
 import sys
 
 from src import db
-from src.collectors import cert_eu, cisa_kev, eba, esma
+from src.collectors import cert_eu, cisa_kev, eba, eiopa, esma
 from src.collectors.base import logger
 
 COLLECTORS = {
@@ -11,6 +11,7 @@ COLLECTORS = {
     "ESMA": esma.collect,
     "CERT-EU": cert_eu.collect,
     "CISA_KEV": cisa_kev.collect,
+    "EIOPA": eiopa.collect,
 }
 
 

@@ -1,4 +1,14 @@
-# Wave 1 Feed Verification
+# Feed Verification
+
+Every feed URL is verified against the live site before its collector is coded. The
+source register asserts no exact URLs on purpose. This file is the evidence.
+
+Sections are grouped by build wave. Wave 1 was verified on 2026-07-07; the Wave 2
+expansion (Phase 6, D-029) is verified per source as each collector is built.
+
+---
+
+# Wave 1 (Phase 2)
 
 Verification date: 2026-07-07. Verified by fetching each URL directly and checking the response.
 
@@ -46,7 +56,7 @@ Verification date: 2026-07-07. Verified by fetching each URL directly and checki
 **Note:** The CISA web pages themselves (e.g. `cisa.gov/known-exploited-vulnerabilities-catalog`) returned HTTP 403 to automated fetch, but the JSON feed file under `/sites/default/files/feeds/` is directly reachable and does not require the HTML page. The collector should hit the JSON URL directly, not the HTML page.
 **Per-item URL mapping:** KEV entries have no per-item article URL field (fields are `cveID`, `vendorProject`, `product`, `vulnerabilityName`, `dateAdded`, `shortDescription`, `requiredAction`, `dueDate`, `knownRansomwareCampaignUse`, `notes`, `cwes`). By owner decision, the stored `url` for each item is the per-CVE NVD record page, pattern `https://nvd.nist.gov/vuln/detail/{cveID}`. Verified live: `https://nvd.nist.gov/vuln/detail/CVE-2026-45659` resolves and shows matching CVE detail. The `source` column stays `CISA_KEV`, the register-named source; NVD is only the per-item link target.
 
-## Summary
+## Wave 1 summary
 
 | Source | Result | Feed URL |
 |---|---|---|
@@ -57,3 +67,52 @@ Verification date: 2026-07-07. Verified by fetching each URL directly and checki
 | CISA KEV | Verified | `https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json` |
 
 4 of 5 Wave 1 sources have a verified working feed. ENISA is blocked; see decision needed above.
+
+---
+
+# Wave 2 expansion (Phase 6, D-029)
+
+Verified per source, immediately before that source's collector was coded. Method: fetch
+the candidate URL directly, check the HTTP status and content type, parse with feedparser,
+and record the channel title, entry count, and newest items. Where a guessed path failed,
+the feed URL was taken from the publisher's own markup (the RSS link on its news page),
+never from a search engine or a third-party feed directory.
+
+## EIOPA
+
+**Status:** Verified.
+**Verification date:** 2026-07-21.
+**URL:** `https://www.eiopa.europa.eu/node/4816/rss_en`
+**Format:** RSS 2.0 (`Content-Type: application/rss+xml; charset=utf-8`, feedparser `rss20`, `bozo=False`).
+**Sample item count:** 30 entries, spanning 2026-03-30 to 2026-07-16 at time of check.
+**Evidence:** Channel title `European Insurance and Occupational Pensions Authority | News`. Entries carry `published` dates and per-item links under `eiopa.europa.eu/...`, for example:
+- 2026-07-16 "EIOPA publishes factsheet on European (re)insurers' exposures to private credit and private equity"
+- 2026-07-15 "EIOPA completes Solvency II Review mandate with final guidelines and draft technical standards"
+- 2026-07-07 "The ESAs support ESRB warning on systemic cyber risks from frontier AI models"
+
+**How the URL was found:** The obvious Drupal paths all returned HTTP 404 against a live site: `https://www.eiopa.europa.eu/rss.xml`, `https://www.eiopa.europa.eu/news/rss.xml`, and `https://www.eiopa.europa.eu/media/news/rss.xml`. The feed URL above is the one EIOPA advertises itself, in the "RSS" anchor on its own news page `https://www.eiopa.europa.eu/media/news_en`. No path was guessed into use.
+
+**Note (fragility):** `node/4816` is the site's internal Drupal node id, not a stable public path, so it could change if EIOPA rebuilds its news section. The failure mode is a 404 and a zero-item or failed run, which the health check surfaces (D-009) rather than passing silently. If it breaks, re-read the RSS link on `/media/news_en` rather than guessing a replacement.
+
+**Collector result (2026-07-21):** First run fetched 30 items, inserted 30. Immediate re-run fetched 30, inserted 0, confirming content-hash dedup. No null titles, URLs, or publication dates. No duplicate content hashes anywhere in the database.
+
+**Taxonomy note:** EIOPA is the source that activates the Insurance sector tag (D-029), which no existing source feeds. No taxonomy change was needed.
+
+## Wave 2 expansion summary
+
+| Source | Result | Feed URL |
+|---|---|---|
+| EIOPA | Verified 2026-07-21 | `https://www.eiopa.europa.eu/node/4816/rss_en` |
+| European Commission (AI) | Not yet verified | TBD |
+| EDPB | Not yet verified | TBD |
+| NCSC UK | Not yet verified | TBD |
+| ECB / SSM | Not yet verified | TBD |
+
+---
+
+# Observed source outages
+
+Recorded when a previously verified feed fails, so a transient upstream outage is not
+mistaken later for a wrong URL.
+
+- **EBA, 2026-07-21**: `https://www.eba.europa.eu/news-press/news/rss.xml` returned HTTP 502 with an "EBA | Maintenance" HTML page instead of the feed. The collector failed loudly and `src/run.py` exited non-zero, per D-009. The URL is unchanged and is not re-verified as broken on this basis: recheck when the site is back. Note that `fetch_rss` reports this as a parse failure, because feedparser fetches the URL itself and does not check the HTTP status; the run still fails, which is the requirement.

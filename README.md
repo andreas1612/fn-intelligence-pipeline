@@ -73,6 +73,12 @@ Sources (Wave 1):
 | CERT-EU | RSS | CERT-EU security advisories |
 | CISA KEV | JSON | CISA Known Exploited Vulnerabilities catalog |
 
+Wave 2 expansion (Phase 6, D-029), added as each feed is verified:
+
+| Source | Type | Feed |
+|--------|------|------|
+| EIOPA | RSS | European Insurance and Occupational Pensions Authority news |
+
 Health checks make zero-item runs visible and fail the job, so a silently broken
 feed is caught rather than passing as a quiet no-op.
 
@@ -251,7 +257,7 @@ Written by `src/matching.py`. One row per approved item / client pair:
     ├── demo.py                   # one-command live demo of the whole cycle
     ├── collectors/               # INTAKE plugins, one per source
     │   ├── base.py               # shared RSS fetch, logging, timestamps
-    │   └── eba.py, esma.py, cert_eu.py, cisa_kev.py
+    │   └── eba.py, esma.py, cert_eu.py, cisa_kev.py, eiopa.py
     ├── run.py                    # run all collectors, report health
     ├── triage.py                 # AI triage, validation, run log
     ├── triage_prompt.md          # approved prompt template
