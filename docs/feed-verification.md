@@ -118,13 +118,33 @@ never from a search engine or a third-party feed directory.
 
 **Collector result (2026-07-21):** First run fetched 10 items, inserted 10. Immediate re-run fetched 10, inserted 0, confirming content-hash dedup.
 
+## EDPB
+
+**Status:** Verified.
+**Verification date:** 2026-07-21.
+**URL:** `https://www.edpb.europa.eu/rss.xml`
+**Format:** RSS 2.0 (`Content-Type: application/rss+xml; charset=utf-8`, feedparser `rss20`, `bozo=False`).
+**Sample item count:** 10 entries, newest 2026-07-17 at time of check.
+**Evidence:** Channel title `European Data Protection Board`. Entries link to `edpb.europa.eu/...`, for example:
+- 2026-07-17 "EDPB calls for legal basis for cross-regulatory information sharing"
+- 2026-07-14 "EDPB requires Belgian DPA to handle the merits of NOYB cookie banner complaint"
+- 2026-07-08 "EDPB sheds light on anonymisation and web scraping for generative AI and adopts final version of guidelines"
+
+**How the URL was found:** As with the Commission site, EDPB advertises no feed in its own markup: `/news/news_en` is server rendered but a raw scan found zero occurrences of "rss", "feed", or "atom". The URL above was confirmed by request against the official domain and returns well-formed RSS 2.0 with the matching channel title. Two other candidates were tried and rejected on evidence: `https://www.edpb.europa.eu/en/rss.xml` returns HTTP 404, and the EIOPA-style `https://www.edpb.europa.eu/node/572/rss_en` also returns HTTP 404, so the node-feed route is not general across europa.eu Drupal sites.
+
+**Note (feed is site-wide):** The feed is not news-only. One of the ten sample entries was an "Acknowledgement of receipt" page under `/contact/`, so occasional non-news pages arrive. Triage tags and levels them like anything else, and low-value items land at Low and fall below most client `min_level` settings. Watch this at review: if administrative pages recur, the fix is a title or URL-path filter in the collector, not a taxonomy change.
+
+**Note (short window):** 10 entries, so daily collection matters, as with the Commission feed.
+
+**Collector result (2026-07-21):** First run fetched 10 items, inserted 10. Immediate re-run fetched 10, inserted 0, confirming content-hash dedup.
+
 ## Wave 2 expansion summary
 
 | Source | Result | Feed URL |
 |---|---|---|
 | EIOPA | Verified 2026-07-21 | `https://www.eiopa.europa.eu/node/4816/rss_en` |
 | European Commission (AI) | Verified 2026-07-21 | `https://digital-strategy.ec.europa.eu/en/rss.xml` |
-| EDPB | Not yet verified | TBD |
+| EDPB | Verified 2026-07-21 | `https://www.edpb.europa.eu/rss.xml` |
 | NCSC UK | Not yet verified | TBD |
 | ECB / SSM | Not yet verified | TBD |
 

@@ -35,4 +35,9 @@ SOURCES = {
         "feed_url": "https://digital-strategy.ec.europa.eu/en/rss.xml",
         "feed_type": "rss",
     },
+    "EDPB": {
+        # Site-wide feed: carries news alongside the occasional non-news page.
+        "feed_url": "https://www.edpb.europa.eu/rss.xml",
+        "feed_type": "rss",
+    },
 }

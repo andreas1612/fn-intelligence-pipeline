@@ -79,6 +79,7 @@ Wave 2 expansion (Phase 6, D-029), added as each feed is verified:
 |--------|------|------|
 | EIOPA | RSS | European Insurance and Occupational Pensions Authority news |
 | EC_DIGITAL | RSS | European Commission, Shaping Europe's Digital Future (AI Act and digital policy) |
+| EDPB | RSS | European Data Protection Board |
 
 Health checks make zero-item runs visible and fail the job, so a silently broken
 feed is caught rather than passing as a quiet no-op.
@@ -258,7 +259,8 @@ Written by `src/matching.py`. One row per approved item / client pair:
     ├── demo.py                   # one-command live demo of the whole cycle
     ├── collectors/               # INTAKE plugins, one per source
     │   ├── base.py               # shared RSS fetch, logging, timestamps
-    │   └── eba.py, esma.py, cert_eu.py, cisa_kev.py, eiopa.py, ec_digital.py
+    │   └── eba.py, esma.py, cert_eu.py, cisa_kev.py,
+    │       eiopa.py, ec_digital.py, edpb.py
     ├── run.py                    # run all collectors, report health
     ├── triage.py                 # AI triage, validation, run log
     ├── triage_prompt.md          # approved prompt template
