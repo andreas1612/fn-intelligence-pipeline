@@ -57,14 +57,45 @@ Design approved 2026-07-09 (D-016 to D-018). Build spec: `docs/phase3-build-spec
 - [x] First test suite: matching rule, triage validation, taxonomy parser, human gate (`tests/`)
 - [x] Design recorded (D-023, D-024)
 
-## Phase 6: Coverage expansion [NEXT]
+## Phase 6: Coverage expansion [IN PROGRESS]
 
-- [x] Resolve the database-in-git problem before source volume grows (D-025, decided 2026-07-16: stays in git for the PoC, workflow serialised with a concurrency group and pre-push rebase)
-- [ ] PoC Wave 2: CySEC scraper, CBC scraper, European AI Office, EUR-Lex OJ, ENISA scraper (D-012)
-- [ ] ECB/SSM RSS collector, after the CySEC and CBC scrapers (scope addition, D-027)
-- [ ] Remaining Tier 1 sources onboarded per register priority
-- [ ] Tier 2 sources onboarded selectively
-- [ ] Scoring thresholds tuned from the override log (this is the "Phase 5 tuning" referred to in D-018 and D-020; needs a one-model re-triage first, per D-026 risk 3)
+Scope expanded on 2026-07-20 (D-029): four RSS sources added and a build order set,
+RSS before scrapers. See D-029 for the source list and rationale.
+
+Done:
+
+- [x] Database-in-git resolved before source volume grows (D-025: stays in git for the PoC, workflow serialised with a concurrency group and pre-push rebase)
+- [x] Matching relevance tightened: a shared sector or theme is required, jurisdiction is a booster not a standalone match (D-028)
+
+6a. RSS and API collectors first (low build risk, fast volume). Verify each feed live before coding:
+
+- [ ] EIOPA (RSS) - the third ESA; activates the Insurance sector tag
+- [ ] European Commission, AI / Shaping Europe's Digital Future (RSS) - AI regulation theme volume
+- [ ] EDPB (RSS) - Data protection and privacy theme
+- [ ] NCSC UK (RSS) - cyber volume beyond CERT-EU and KEV; first International-jurisdiction source
+- [ ] ECB / SSM (RSS) - prudential supervision, cyber resilience expectations (D-027)
+
+6b. Scrapers (the Cyprus differentiator and the real build risk):
+
+- [ ] CySEC scraper - first scraper
+- [ ] CBC scraper
+- [ ] ENISA scraper (RSS/API feed discontinued, D-012)
+
+6c. Structured legal and AI sources:
+
+- [ ] EUR-Lex / Official Journal (API or email alerts)
+- [ ] European AI Office (RSS or scrape)
+
+Then:
+
+- [ ] Scoring thresholds tuned from the override log (the "Phase 5 tuning" of D-018 and D-020; needs a one-model re-triage first, per D-026 risk 3)
+- [ ] Remaining Tier 1 and selected Tier 2 sources per register priority
+
+Parked until Phase 6 volume exists (owner decision 2026-07-20, D-029):
+
+- Client-relevant systems list (KEV noise filter and strict Urgent, scoring section 12)
+- Type-based filtering in matching and client profiles
+- Notion review views grouped by Type
 
 ## Phase 7: White-label
 

@@ -571,7 +571,7 @@ require human input), so they are not on the daily schedule.
 | 3 | AI triage, taxonomy, scoring, Notion review, overrides | Done |
 | 4 | Client matching (register, profiles, deterministic engine) | Done |
 | 5 | Distribution (digests, channels, orchestrator, tests) | Done |
-| 6 | Coverage expansion (Wave 2 sources, threshold tuning) | Next |
+| 6 | Coverage expansion (Wave 2 scrapers plus four RSS additions, D-029; threshold tuning) | In progress |
 | 7 | White-label (email via SendGrid, branded templates) | Planned |
 
 Phases were renumbered on 2026-07-14 (D-023): distribution took Phase 5, so

@@ -30,7 +30,12 @@ Phases 1 to 5 complete: foundations, Wave 1 collectors, AI triage with the Notio
 review board, client matching, and distribution (per-client digest, file and console
 channels, full-cycle orchestrator, first test suite).
 
-Next: Phase 6, coverage expansion (Wave 2 sources, starting with the CySEC scraper).
+Phase 6 (coverage expansion) in progress. Scope expanded 2026-07-20 (D-029): four
+RSS sources added (EIOPA, European Commission AI, EDPB, NCSC UK) alongside the Wave 2
+scrapers (CySEC, CBC, ENISA), European AI Office, EUR-Lex, and ECB (D-027). Build
+order is RSS sources first, then scrapers. Matching relevance was tightened first
+(D-028): a match now needs a shared sector or theme, not jurisdiction alone. Repo now
+lives at github.com/finalogic-ltd/finalogic-intelligence-pipeline.
 
 Phase numbering changed on 2026-07-14 (D-023). Distribution was built as Phase 5 and
 coverage expansion moved to Phase 6. Decisions D-015, D-018, and D-020 predate this

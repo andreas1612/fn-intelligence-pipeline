@@ -1,7 +1,7 @@
 # Finalogic Intelligence Pipeline: Source Register
 
-**Status:** Active. PoC scope defined 2026-07-07.
-**Version:** 1.2
+**Status:** Active. PoC scope defined 2026-07-07, expanded 2026-07-20 (D-029).
+**Version:** 1.3
 **Purpose:** Master list of monitored sources for internal regulatory and cybersecurity intelligence, designed to scale into a client-facing product.
 
 **Scope:** Financial-sector focus. Cyprus and EU priority. AI governance and AI security treated as priority cross-cutting themes.
@@ -47,10 +47,23 @@ Five sources. Adds the Cyprus differentiator, the AI priority theme, and authori
 | EUR-Lex / Official Journal | Regulatory | API / Email | Authoritative text of EU law |
 | ENISA | Cybersecurity | Scrape | Core EU cyber authority, includes AI security outputs. RSS/API feed confirmed discontinued 2026-07-07 (D-012), so built as a scraper here |
 
+## Wave 2 expansion: four RSS sources (D-029, 2026-07-20)
+
+Added to widen the sector, theme, and jurisdiction surface for filter testing, at low build risk. RSS/API only, built before the scrapers. Each feed is verified live before its collector is coded.
+
+| Source | Pillar | Feed | Why added |
+|---|---|---|---|
+| EIOPA | Regulatory | RSS | Third ESA. Activates the Insurance sector tag, which no current source feeds |
+| European Commission (Shaping Europe's Digital Future / AI) | Regulatory / AI | RSS | Volume on the AI regulation priority theme |
+| EDPB | Regulatory | RSS | Data protection and privacy theme, currently thin |
+| NCSC UK | Cybersecurity | RSS | Cyber volume beyond CERT-EU and KEV. First routine International-jurisdiction source, which exercises D-028 |
+
+ECB/SSM (RSS, D-027) is also in Phase 6 and built in this RSS-first batch.
+
 ## Deliberate PoC exclusions (with reason)
 
 - **NVD full CVE feed**: Deferred. Volume is very high and mostly low relevance. CISA KEV covers exploited vulnerabilities, which is what the Urgent tests (U-1) need. Revisit in Phase 5.
-- **EIOPA**: Deferred. Insurance is the smallest client segment. DORA joint outputs surface via EBA, ESMA, and the ESAs Joint Committee.
+- **EIOPA**: ~~Deferred.~~ Pulled into Wave 2 expansion on 2026-07-20 (D-029) to activate the Insurance sector tag for filter testing. Originally deferred as the smallest client segment.
 - **All other Tier 1, and all Tier 2 and Tier 3**: Backlog, Phase 5, in register order below.
 
 ---
@@ -74,9 +87,9 @@ Five sources. Adds the Cyprus differentiator, the AI priority theme, and authori
 |---|---|---|---|
 | EBA | Banking, DORA RTS/ITS, ICT risk, guidelines, Q&A | RSS / TBD | Core. DORA and ICT advisory backbone. **PoC Wave 1** |
 | ESMA | Securities, MiCA, reporting, supervisory briefings | RSS / TBD | Core for investment firms and crypto clients. **PoC Wave 1** |
-| EIOPA | Insurance and pensions, DORA joint outputs | RSS / TBD | Completes the three ESAs. DORA is joint. |
+| EIOPA | Insurance and pensions, DORA joint outputs | RSS / TBD | Completes the three ESAs. DORA is joint. **PoC Wave 2 (expansion, D-029)** |
 | ESAs Joint Committee (DORA oversight) | Critical ICT third-party provider oversight, joint DORA standards and outputs | TBD | Direct DORA third-party regime. Verify exact publishing location. |
-| ECB / SSM | Prudential supervision, cyber resilience expectations | RSS / TBD | Systemic and supervisory signals. |
+| ECB / SSM | Prudential supervision, cyber resilience expectations | RSS / TBD | Systemic and supervisory signals. **PoC Wave 2 (D-027)** |
 | ESRB | Systemic risk warnings and recommendations | RSS / TBD | Macro-prudential context. |
 | AMLA (EU Anti-Money Laundering Authority) | New EU AML supervisor, standards | Scrape / TBD | Rising importance for EMI and fintech AML. |
 | SRB (Single Resolution Board) | Resolution, operational continuity | TBD | Lower priority. Monitor selectively. |
@@ -88,7 +101,7 @@ Five sources. Adds the Cyprus differentiator, the AI priority theme, and authori
 |---|---|---|---|
 | EUR-Lex / Official Journal (OJ) | Regulations, directives, implementing and delegated acts | API / Email | Authoritative text of EU law. Use SPARQL or email alerts. **PoC Wave 2** |
 | European Commission (Have Your Say) | Consultations and feedback periods | RSS / TBD | Early warning on upcoming rules. |
-| EDPB | GDPR guidelines, opinions, AI and data positions | RSS / TBD | Data protection and AI enforcement direction. |
+| EDPB | GDPR guidelines, opinions, AI and data positions | RSS / TBD | Data protection and AI enforcement direction. **PoC Wave 2 (expansion, D-029)** |
 | EDPS | Supervision of EU bodies, AI and privacy opinions | RSS / TBD | Influential on AI and data policy. |
 
 ## 1d. AI Governance and Regulation (Tier 1, priority theme)
@@ -96,7 +109,7 @@ Five sources. Adds the Cyprus differentiator, the AI priority theme, and authori
 | Source | Covers | Feed | Relevance |
 |---|---|---|---|
 | European AI Office | AI Act implementation, guidelines, consultations, codes of practice | RSS / Scrape | Core. Active consultation feed. Drives AI Act interpretation. **PoC Wave 2** |
-| European Commission (Shaping Europe's Digital Future, AI) | AI Act press releases, delegated acts, timelines | RSS / TBD | Primary AI Act news source. |
+| European Commission (Shaping Europe's Digital Future, AI) | AI Act press releases, delegated acts, timelines | RSS / TBD | Primary AI Act news source. **PoC Wave 2 (expansion, D-029)** |
 | European Artificial Intelligence Board | Coordination and guidance across member states | TBD | Governance signals. Lower volume. |
 | Cyprus AI competent authority (Commissioner of Communications / Deputy Ministry of Research, Innovation and Digital Policy) | National AI Act designation, market surveillance, sandbox | Scrape / TBD | Cyprus AI enforcement point. Verify exact publishing page. |
 | EUR-Lex (AI Act and delegated acts) | Binding AI legal texts | API / Email | Authoritative AI Act text and amendments. |
@@ -148,7 +161,7 @@ Five sources. Adds the Cyprus differentiator, the AI priority theme, and authori
 | NVD (NIST) | CVE records, severity scoring | API | Deferred from PoC. High volume, mostly low relevance. CISA KEV covers exploited vulnerabilities. Revisit Phase 5. |
 | CVE.org / MITRE | CVE assignment and records | API / TBD | Primary CVE source. Same deferral rationale as NVD. |
 | CISA (advisories + KEV catalogue) | Exploited vulnerabilities, ICS, advisories | RSS / API | KEV catalogue is high-signal. **PoC Wave 1** |
-| NCSC UK | Advisories, weekly threat reports, guidance | RSS / TBD | High quality. Often EU-applicable. |
+| NCSC UK | Advisories, weekly threat reports, guidance | RSS / TBD | High quality. Often EU-applicable. **PoC Wave 2 (expansion, D-029)** |
 
 ## 2d. International Cyber Agencies and Sector (Tier 2)
 
@@ -211,6 +224,7 @@ Relevance scoring is likewise locked in `docs/scoring-criteria.md` (four levels:
 
 # Version history
 
+- v1.3 (2026-07-20): Wave 2 expanded with four RSS sources (EIOPA, European Commission AI, EDPB, NCSC UK) and ECB/SSM marked as PoC Wave 2, per D-029 and D-027. Build order set to RSS before scrapers. EIOPA moved from the exclusions list into scope.
 - v1.2 (2026-07-07): ENISA moved from Wave 1 to Wave 2 as a scraper after its RSS/API feed was confirmed discontinued (D-012). Wave 1 now four sources, Wave 2 now five.
 - v1.1 (2026-07-07): PoC scope added (two waves, exclusions with reasons). Embedded draft taxonomy marked superseded by taxonomy-v1.0.md and scoring-criteria.md. Build notes aligned.
 - v1.0: Initial register (pre-workspace).

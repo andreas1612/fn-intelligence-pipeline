@@ -204,6 +204,27 @@ Recorded retrospectively. Phase 4 built the matching layer; this entry states th
 
 **Not a re-triage trigger**: Triage output is unchanged; only routing changes. The example-client match ledger was rebuilt under the new rule. No real client data exists yet, so nothing of value was rewritten.
 
+## D-029: Phase 6 scope expanded with four RSS sources, RSS before scrapers (2026-07-20)
+
+**Decision**: Phase 6 (coverage expansion) adds four RSS/API sources to the locked Wave 2 set, chosen for low build risk and for widening the sector, theme, and jurisdiction surface the filters are tested against:
+
+- **EIOPA** (RSS): the third ESA. Activates the Insurance sector tag, which no current source feeds.
+- **European Commission, Shaping Europe's Digital Future / AI** (RSS): raises volume on the AI regulation priority theme.
+- **EDPB** (RSS): feeds the Data protection and privacy theme, currently thin.
+- **NCSC UK** (RSS): adds cybersecurity volume beyond CERT-EU and KEV, and is the first routine International-jurisdiction source, which exercises D-028 (International items match on sector or theme, never on jurisdiction alone).
+
+These join the existing Phase 6 scope: the CySEC, CBC, and ENISA scrapers, European AI Office, EUR-Lex OJ, and ECB/SSM (D-027).
+
+**Build order**: RSS and API collectors first (EIOPA, EC AI, EDPB, NCSC UK, ECB), then the scrapers (CySEC, CBC, ENISA), then EUR-Lex and European AI Office. The RSS sources get item volume flowing for filter testing quickly; the scrapers carry the real build risk and the Cyprus differentiator and follow once the RSS pattern is re-proven at Wave 2. This revises the sequencing note in D-027: ECB was to follow the Cyprus scrapers, but as an RSS source it now sits in the RSS-first batch. The decision to include ECB stands; only its order changes.
+
+**Rationale**: The owner asked to widen scope so there are more items to test, filter, and learn from before the client-facing tuning work. RSS sources are the cheapest way to add that volume and diversity. All four are already in the source register, so traceability holds; none is a discovered or invented source.
+
+**No taxonomy or scoring change**: The new sources map onto existing tags (Insurance sector, AI regulation and Data protection and privacy themes, International jurisdiction, standard types). `taxonomy-v1.0.md` and `scoring-criteria.md` are unchanged. Client profiles may gain an Insurance example client to exercise the new sector, but that is example config, not a locked-document change.
+
+**Unchanged rules**: Every feed URL is verified live before its collector is coded (register convention); collectors follow the existing plugin pattern with per-source health checks; migrations stay additive; the database stays in git with the serialised workflow (D-025).
+
+**Parked by the same owner decision (2026-07-20)**, to be picked up after Phase 6 has produced volume: the client-relevant systems list (KEV noise filter and strict Urgent, scoring section 12); Type-based filtering in matching and client profiles; and Notion review views grouped by Type.
+
 ## Open items
 
 - TBD: MiCA theme tag. Deferred until item volume justifies it (see taxonomy section 9).
