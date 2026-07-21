@@ -98,12 +98,32 @@ never from a search engine or a third-party feed directory.
 
 **Taxonomy note:** EIOPA is the source that activates the Insurance sector tag (D-029), which no existing source feeds. No taxonomy change was needed.
 
+## European Commission, Shaping Europe's Digital Future / AI
+
+**Status:** Verified.
+**Verification date:** 2026-07-21.
+**URL:** `https://digital-strategy.ec.europa.eu/en/rss.xml`
+**Format:** RSS 2.0 (`Content-Type: application/rss+xml; charset=utf-8`, feedparser `rss20`, `bozo=False`).
+**Sample item count:** 10 entries, newest 2026-07-20 at time of check.
+**Evidence:** Channel title `Shaping Europe's digital future`, which is the register's named source. Entries link to `digital-strategy.ec.europa.eu/en/...`, for example:
+- 2026-07-20 "Commission publishes guidelines on transparency obligations for providers and deployers of certain AI systems"
+- 2026-07-20 "Commission fines AliExpress EUR 550 million for breaching the Digital Services Act"
+- 2026-07-20 "Guidelines on transparency obligations for providers and deployers of AI systems"
+
+**How the URL was found:** Unlike EIOPA, this site advertises no RSS link in its own markup: the news listing is rendered client side from a Solr search, and a raw scan of `/en/news` and `/en/policies/artificial-intelligence` found zero occurrences of "rss", "feed", or "atom". The URL above was confirmed by request against the official domain, and accepted only because it returns a well-formed RSS 2.0 document whose channel title matches the named source and whose items link back to that same domain. `https://digital-strategy.ec.europa.eu/rss.xml` returns byte-identical content; the `/en/` path is used to pin the language explicitly, since the site serves 24 languages.
+
+**Note (feed is site-wide, not AI-only):** No AI-topic feed exists. `/en/policies/artificial-intelligence/rss.xml` and `/en/news/rss.xml` both return HTTP 200 with an HTML page and zero entries, so neither is a feed. The site-wide feed mixes news, events, and library items, so events and non-AI digital-policy items arrive alongside AI Act content. This is the same situation as ESMA's site-wide `rss.xml` and is handled the same way: separation happens through taxonomy tagging at triage, not at collection. Triage cost is about $0.002 per item, so the extra volume is immaterial.
+
+**Note (short window):** The feed carries only 10 entries, a narrower window than EIOPA's 30. Daily collection covers it; a multi-day gap in collection could miss items.
+
+**Collector result (2026-07-21):** First run fetched 10 items, inserted 10. Immediate re-run fetched 10, inserted 0, confirming content-hash dedup.
+
 ## Wave 2 expansion summary
 
 | Source | Result | Feed URL |
 |---|---|---|
 | EIOPA | Verified 2026-07-21 | `https://www.eiopa.europa.eu/node/4816/rss_en` |
-| European Commission (AI) | Not yet verified | TBD |
+| European Commission (AI) | Verified 2026-07-21 | `https://digital-strategy.ec.europa.eu/en/rss.xml` |
 | EDPB | Not yet verified | TBD |
 | NCSC UK | Not yet verified | TBD |
 | ECB / SSM | Not yet verified | TBD |

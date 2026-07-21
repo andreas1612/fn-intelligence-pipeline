@@ -29,4 +29,10 @@ SOURCES = {
         "feed_url": "https://www.eiopa.europa.eu/node/4816/rss_en",
         "feed_type": "rss",
     },
+    "EC_DIGITAL": {
+        # Shaping Europe's Digital Future, site-wide. No AI-topic feed exists, so AI
+        # items are separated by tagging at triage, not at collection.
+        "feed_url": "https://digital-strategy.ec.europa.eu/en/rss.xml",
+        "feed_type": "rss",
+    },
 }

@@ -70,7 +70,7 @@ Done:
 6a. RSS and API collectors first (low build risk, fast volume). Verify each feed live before coding:
 
 - [x] EIOPA (RSS) - the third ESA; activates the Insurance sector tag (`src/collectors/eiopa.py`; feed verified 2026-07-21, 30 items on first run, dedup confirmed on re-run)
-- [ ] European Commission, AI / Shaping Europe's Digital Future (RSS) - AI regulation theme volume
+- [x] European Commission, AI / Shaping Europe's Digital Future (RSS) - AI regulation theme volume (`src/collectors/ec_digital.py`; feed verified 2026-07-21, site-wide feed, no AI-only feed exists, 10 items on first run, dedup confirmed)
 - [ ] EDPB (RSS) - Data protection and privacy theme
 - [ ] NCSC UK (RSS) - cyber volume beyond CERT-EU and KEV; first International-jurisdiction source
 - [ ] ECB / SSM (RSS) - prudential supervision, cyber resilience expectations (D-027)
