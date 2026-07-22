@@ -1,4 +1,4 @@
-# CLAUDE.md: Working context for Claude Code
+﻿# CLAUDE.md: Working context for Claude Code
 
 ## What this project is
 
@@ -36,6 +36,17 @@ scrapers (CySEC, CBC, ENISA), European AI Office, EUR-Lex, and ECB (D-027). Buil
 order is RSS sources first, then scrapers. Matching relevance was tightened first
 (D-028): a match now needs a shared sector or theme, not jurisdiction alone. Repo now
 lives at github.com/finalogic-ltd/finalogic-intelligence-pipeline.
+
+Phase 6a (the RSS batch) is COMPLETE as of 2026-07-21. All five collectors are built,
+verified, and registered: EIOPA, EC_DIGITAL, EDPB, NCSC_UK, ECB_SSM. Nine sources now
+collect green in one run. Evidence for every feed URL, including the candidates that
+were rejected and why, is in `docs/feed-verification.md`. A 15-item sample (3 per new
+source) was triaged: the Insurance sector and International jurisdiction tags both
+fire for the first time, and D-028 holds with zero jurisdiction-only matches.
+
+Next is Phase 6b, the scrapers, starting with CySEC. These carry the real build risk
+and the Cyprus differentiator. `python -m src.triage --source NAME --limit N` is the
+per-source shakedown tool built during 6a; use it for each scraper too.
 
 Phase numbering changed on 2026-07-14 (D-023). Distribution was built as Phase 5 and
 coverage expansion moved to Phase 6. Decisions D-015, D-018, and D-020 predate this
