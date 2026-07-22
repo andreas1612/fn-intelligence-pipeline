@@ -126,6 +126,14 @@ Raw collection columns are never altered by triage. Two logs are written:
 
 ### Stage 3: Human review (`src/notion_sync.py`)
 
+`sync-schema` reconciles an existing board with the source register and the
+locked taxonomy. `build_schema` runs only at creation, so a board created before
+a source or tag existed does not carry it, and pushing an item whose `Source`
+option is absent would depend on Notion silently creating it. It is additive
+like `src/migrate.py`: options are added, never renamed or removed, and an
+option on the board the schema does not know about is reported and left alone.
+`--dry-run` reports without writing. Run it after adding a source.
+
 `push` creates one Notion page per newly triaged item. Reviewers set `Status`
 (New / Reviewed / Published / Discarded) and may change `Level`. `pull` reads
 those back into SQLite: it updates `review_status` and logs any level change as
@@ -431,6 +439,7 @@ python -m src.triage --dry-run           # build prompts, no API calls, no write
 python -m src.triage --source EIOPA --limit 3   # shake down one source (repeatable flag)
 
 # 3. Human review
+python -m src.notion_sync sync-schema    # add new sources/tags to an existing board
 python -m src.notion_sync push           # create pages for newly triaged items
 #    ... reviewers set Status and Level in Notion ...
 python -m src.notion_sync pull           # read Status/Level back, log overrides

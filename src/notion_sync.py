@@ -211,6 +211,96 @@ def create(parent_page_id: str) -> int:
     return 0
 
 
+def sync_schema(dry_run: bool = False) -> int:
+    """Add missing select options to an existing board.
+
+    `build_schema` runs only at creation, so a board created before a source or
+    taxonomy tag existed does not carry it. Pushing an item whose Source option
+    is absent relies on Notion silently creating it, which is not something to
+    depend on for the audit trail. This reconciles the board with the register
+    and the locked taxonomy explicitly.
+
+    Additive only, like `src/migrate.py`: options are added, never renamed or
+    removed. An option on the board that the schema does not know about is
+    reported and left alone, because a reviewer may be relying on it.
+    """
+    load_dotenv()
+    database_id = require_database_id()
+    client = notion_client()
+    data_source_id = resolve_data_source_id(client, database_id)
+
+    live = client.request(path=f"data_sources/{data_source_id}", method="GET")
+    live_properties = live.get("properties") or {}
+    wanted = build_schema()
+
+    patch: dict = {}
+    added: list[str] = []
+    unknown: list[str] = []
+    missing_properties: list[str] = []
+
+    for name, spec in wanted.items():
+        kind = next(iter(spec))
+        if kind not in ("select", "multi_select"):
+            continue
+
+        wanted_names = [option["name"] for option in spec[kind]["options"]]
+        live_property = live_properties.get(name)
+
+        if live_property is None:
+            missing_properties.append(name)
+            patch[name] = spec
+            added.extend(f"{name}: {value} (new property)" for value in wanted_names)
+            continue
+
+        live_options = live_property.get(kind, {}).get("options", [])
+        live_names = {option["name"] for option in live_options}
+
+        new_names = [value for value in wanted_names if value not in live_names]
+        unknown.extend(
+            f"{name}: {value}" for value in sorted(live_names - set(wanted_names))
+        )
+        if not new_names:
+            continue
+
+        # Send existing options back with their ids so Notion keeps them, plus
+        # the new ones. Omitting an existing option would delete it.
+        merged = [
+            {"id": option["id"], "name": option["name"], "color": option["color"]}
+            for option in live_options
+        ]
+        merged.extend({"name": value} for value in new_names)
+        patch[name] = {kind: {"options": merged}}
+        added.extend(f"{name}: {value}" for value in new_names)
+
+    if unknown:
+        print("On the board but not in the schema (left alone, nothing removed):")
+        for line in unknown:
+            print(f"  {line}")
+        print()
+
+    if not patch:
+        print("Board schema is already in sync. Nothing to add.")
+        return 0
+
+    print(f"Options to add ({len(added)}):")
+    for line in added:
+        print(f"  {line}")
+    if missing_properties:
+        print(f"\nProperties missing entirely: {', '.join(missing_properties)}")
+
+    if dry_run:
+        print("\nDry run: nothing written to Notion.")
+        return 0
+
+    client.request(
+        path=f"data_sources/{data_source_id}",
+        method="PATCH",
+        body={"properties": patch},
+    )
+    print(f"\nUpdated {len(patch)} propert(ies) on the board.")
+    return 0
+
+
 def push() -> int:
     load_dotenv()
     database_id = require_database_id()
@@ -347,11 +437,20 @@ def main() -> int:
     sub.add_parser("pull", help="read Status and Level back, log overrides")
     creator = sub.add_parser("create", help="create the review database under a parent page")
     creator.add_argument("--parent-page-id", required=True, help="Notion page ID to hold the board")
+    schema = sub.add_parser(
+        "sync-schema",
+        help="add missing select options to an existing board (additive, never removes)",
+    )
+    schema.add_argument(
+        "--dry-run", action="store_true", help="report what would change, write nothing"
+    )
 
     args = parser.parse_args()
     load_dotenv()
     if args.command == "create":
         return create(args.parent_page_id)
+    if args.command == "sync-schema":
+        return sync_schema(dry_run=args.dry_run)
     if args.command == "push":
         return push()
     return pull()
