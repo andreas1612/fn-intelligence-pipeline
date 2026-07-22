@@ -1,4 +1,4 @@
-# Decision Log
+﻿# Decision Log
 
 Locked decisions with rationale. Propose changes as new dated entries, do not edit history.
 
@@ -225,6 +225,21 @@ These join the existing Phase 6 scope: the CySEC, CBC, and ENISA scrapers, Europ
 
 **Parked by the same owner decision (2026-07-20)**, to be picked up after Phase 6 has produced volume: the client-relevant systems list (KEV noise filter and strict Urgent, scoring section 12); Type-based filtering in matching and client profiles; and Notion review views grouped by Type.
 
+## D-030: Phase 6a feed scope, where a source publishes more than one feed (2026-07-21)
+
+**Decision**: Where a Phase 6a source publishes several feeds, the collector takes one of them, and the choice is recorded with live evidence in `docs/feed-verification.md`. Three sources needed this call:
+
+- **NCSC UK**: the News feed (`/api/1/services/v1/news-rss-feed.xml`), which is the alerts and advisories stream. Not the feed named "All": despite the name it carried 13 blog posts and 7 news items with no guidance and no reports. Not Guidance or Threat Reports either: both are valid feeds but slow moving, newest entries 2026-03 and 2025-05 at time of check, so adding them would mostly import an ageing backlog.
+- **ECB / SSM**: the banking supervision press feed (`bankingsupervision.europa.eu/rss/press.html`). Not the main ECB feed, which is monetary-policy led and outside the client base. D-027 scopes this source to prudential supervision and cyber resilience expectations, and the supervision site is the SSM.
+- **European Commission and EDPB**: the site-wide feeds, because no narrower feed exists. Candidate topic paths were tried and returned HTML with zero entries, not feeds.
+
+**Rationale**: This follows the CERT-EU precedent set in Wave 1, where the collector deliberately takes the Security Advisories feed and other content types are out of scope. One feed per source keeps the plugin pattern unchanged and avoids inventing a multi-feed collector shape before there is a reason for one.
+
+**What this means for coverage**: The register's "Covers" column describes what a source publishes, not what the collector ingests. EBA and ESMA already worked this way. Where the collector takes less than the register describes, the gap is named in `docs/feed-verification.md` rather than left implicit.
+
+**Revisit**: The named candidates are the NCSC Guidance and Threat Report feeds, and the ECB banking supervision publications feed (`/rss/pub.html`), which carries the substantive supervisory guides such as the ICAAP and EGMA guides. Any of them can be added later as its own source key without touching the existing collectors.
+
+**No taxonomy or scoring change**: The sample triaged on 2026-07-21 returned in-taxonomy tags on the first attempt for all 15 items. The Insurance sector and International jurisdiction tags fired for the first time, and D-028 held with no jurisdiction-only matches.
 ## Open items
 
 - TBD: MiCA theme tag. Deferred until item volume justifies it (see taxonomy section 9).
@@ -233,3 +248,5 @@ These join the existing Phase 6 scope: the CySEC, CBC, and ENISA scrapers, Europ
 - TBD: U-1 reference list of client-relevant systems (see scoring criteria section 12). Still the proper fix for D-020.
 - RESOLVED 2026-07-16: D-025 decided. The database stays in git for the PoC with the collection workflow serialised; hosted SQLite is the pre-launch revisit.
 - TBD: Replace the example clients in `config/clients.yaml` with real ones. Nothing can be sent to a real recipient until this happens, which is deliberate.
+- TBD: The EIOPA feed URL uses an internal Drupal node id (`/node/4816/rss_en`), which is the URL EIOPA itself advertises but is not a stable public path. If it starts returning 404, re-read the RSS link on `eiopa.europa.eu/media/news_en` rather than guessing a replacement. The health check makes the failure visible (D-009).
+- TBD: EIOPA items are landing on the catch-all theme "Other financial regulation", because the theme vocabulary is ICT and cyber centric and insurance-prudential content (Solvency II, IRRD) has nowhere better to sit. Watch before proposing anything: repeated catch-all use is the taxonomy's own stated change trigger (taxonomy section 8). Not acted on, since the taxonomy is locked.

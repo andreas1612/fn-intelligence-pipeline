@@ -1,6 +1,6 @@
 ﻿# Roadmap and Status
 
-Last updated: 2026-07-21
+Last updated: 2026-07-22
 
 ## Phase numbering note (D-023)
 
@@ -67,7 +67,13 @@ Done:
 - [x] Database-in-git resolved before source volume grows (D-025: stays in git for the PoC, workflow serialised with a concurrency group and pre-push rebase)
 - [x] Matching relevance tightened: a shared sector or theme is required, jurisdiction is a booster not a standalone match (D-028)
 
-6a. RSS and API collectors first (low build risk, fast volume). Verify each feed live before coding:
+6a. RSS and API collectors first (low build risk, fast volume). Verify each feed live
+before coding. [COMPLETE 2026-07-21] All five built, verified, and registered. Nine
+sources now collect green in one run. Feed evidence, including the candidates that
+were rejected and why, is in `docs/feed-verification.md`; the feed-scope choices are
+D-030. A 15-item sample (3 per new source) was triaged: 0 invalid outputs, the
+Insurance sector and International jurisdiction tags fired for the first time, and
+D-028 held with zero jurisdiction-only matches.
 
 - [x] EIOPA (RSS) - the third ESA; activates the Insurance sector tag (`src/collectors/eiopa.py`; feed verified 2026-07-21, 30 items on first run, dedup confirmed on re-run)
 - [x] European Commission, AI / Shaping Europe's Digital Future (RSS) - AI regulation theme volume (`src/collectors/ec_digital.py`; feed verified 2026-07-21, site-wide feed, no AI-only feed exists, 10 items on first run, dedup confirmed)
