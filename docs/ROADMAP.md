@@ -73,7 +73,7 @@ Done:
 - [x] European Commission, AI / Shaping Europe's Digital Future (RSS) - AI regulation theme volume (`src/collectors/ec_digital.py`; feed verified 2026-07-21, site-wide feed, no AI-only feed exists, 10 items on first run, dedup confirmed)
 - [x] EDPB (RSS) - Data protection and privacy theme (`src/collectors/edpb.py`; feed verified 2026-07-21, 10 items on first run, dedup confirmed)
 - [x] NCSC UK (RSS) - cyber volume beyond CERT-EU and KEV; first International-jurisdiction source (`src/collectors/ncsc_uk.py`; feed verified 2026-07-21 from the NCSC feeds page, News feed chosen over All/Guidance/Report/Blog, 20 items on first run, dedup confirmed)
-- [ ] ECB / SSM (RSS) - prudential supervision, cyber resilience expectations (D-027)
+- [x] ECB / SSM (RSS) - prudential supervision, cyber resilience expectations (D-027) (`src/collectors/ecb_ssm.py`; feed verified 2026-07-21 from the SSM RSS index, supervision press feed not the monetary-policy-led main ECB feed, 15 items on first run, dedup confirmed)
 
 6b. Scrapers (the Cyprus differentiator and the real build risk):
 

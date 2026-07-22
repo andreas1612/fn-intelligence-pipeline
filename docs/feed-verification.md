@@ -165,6 +165,27 @@ Guidance and Threat Reports remain candidates if a reviewer wants the reference 
 
 **Collector result (2026-07-21):** First run fetched 20 items, inserted 20. Immediate re-run fetched 20, inserted 0, confirming content-hash dedup.
 
+## ECB / SSM
+
+**Status:** Verified.
+**Verification date:** 2026-07-21.
+**URL:** `https://www.bankingsupervision.europa.eu/rss/press.html`
+**Format:** RSS 2.0 (`Content-Type: application/rss+xml`, feedparser `rss20`, `bozo=False`).
+**Sample item count:** 15 entries, newest 2026-07-02 at time of check. All 15 carry a parseable publication date.
+**Evidence:** Channel title `ECB - European Central Bank`. Entries link to `bankingsupervision.europa.eu/press/...`, for example:
+- 2026-06-29 "ECB sanctions BIL for breaching ECB decision on internal models"
+- 2026-06-26 "ECB streamlines supervisory guidance to improve clarity and transparency"
+- 2026-06-25 "ECB concludes asset quality reviews of KfW Beteiligungsholding GmbH and Promontoria 19"
+
+**How the URL was found:** The ECB banking supervision press page links an RSS index at `https://www.bankingsupervision.europa.eu/rss`, which lists four official feeds: press, publications, speeches, and the Supervision Newsletter. The URL above is taken directly from that index.
+
+**Why the supervision site and not the main ECB feed:** D-027 scopes this source to prudential supervision and cyber resilience expectations for significant institutions. `https://www.ecb.europa.eu/rss` is the main ECB feed and is monetary-policy led, which is outside the client base of EMIs, fintechs, and investment firms. The banking supervision site is the SSM, so it is the feed that matches the decision.
+
+**Why the press feed and not publications:** Consistency with every other collector here, which takes its source's news or press stream. The publications feed at `https://www.bankingsupervision.europa.eu/rss/pub.html` was checked and is also a valid RSS 2.0 feed carrying the substantive supervisory documents (ICAAP guide, EGMA guide, supervised entity lists). It is a genuine candidate if a reviewer wants the guidance documents themselves rather than the announcements of them.
+
+**Collector result (2026-07-21):** First run fetched 15 items, inserted 15. Immediate re-run fetched 15, inserted 0, confirming content-hash dedup.
+
+**Note (double slash in item URLs):** The feed publishes item links with a double slash after the host, for example `https://www.bankingsupervision.europa.eu//press/pr/date/2026/html/ssm.pr260629~f60e0e7048.en.html`. All five sampled links were fetched and returned HTTP 200 as published, with no redirect, so traceability holds. The URLs are stored exactly as the publisher emits them, which keeps the content hash stable. Do not "fix" the double slash in the collector: normalising it would change the hash and re-insert every existing item as new.
 ## Wave 2 expansion summary
 
 | Source | Result | Feed URL |
@@ -173,7 +194,7 @@ Guidance and Threat Reports remain candidates if a reviewer wants the reference 
 | European Commission (AI) | Verified 2026-07-21 | `https://digital-strategy.ec.europa.eu/en/rss.xml` |
 | EDPB | Verified 2026-07-21 | `https://www.edpb.europa.eu/rss.xml` |
 | NCSC UK | Verified 2026-07-21 | `https://www.ncsc.gov.uk/api/1/services/v1/news-rss-feed.xml` |
-| ECB / SSM | Not yet verified | TBD |
+| ECB / SSM | Verified 2026-07-21 | `https://www.bankingsupervision.europa.eu/rss/press.html` |
 
 ---
 

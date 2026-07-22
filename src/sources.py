@@ -46,4 +46,11 @@ SOURCES = {
         "feed_url": "https://www.ncsc.gov.uk/api/1/services/v1/news-rss-feed.xml",
         "feed_type": "rss",
     },
+    "ECB_SSM": {
+        # ECB banking supervision (the SSM), press stream: press releases, speeches,
+        # interviews. The separate publications feed at /rss/pub.html is a candidate.
+        # Not the main ECB site feed, which is monetary policy led (D-027).
+        "feed_url": "https://www.bankingsupervision.europa.eu/rss/press.html",
+        "feed_type": "rss",
+    },
 }

@@ -81,6 +81,7 @@ Wave 2 expansion (Phase 6, D-029), added as each feed is verified:
 | EC_DIGITAL | RSS | European Commission, Shaping Europe's Digital Future (AI Act and digital policy) |
 | EDPB | RSS | European Data Protection Board |
 | NCSC_UK | RSS | UK National Cyber Security Centre news and alerts |
+| ECB_SSM | RSS | ECB banking supervision (SSM) press releases and speeches |
 
 Health checks make zero-item runs visible and fail the job, so a silently broken
 feed is caught rather than passing as a quiet no-op.
@@ -261,7 +262,8 @@ Written by `src/matching.py`. One row per approved item / client pair:
     β”β”€β”€ collectors/               # INTAKE plugins, one per source
     β”‚   β”β”€β”€ base.py               # shared RSS fetch, logging, timestamps
     β”‚   β””β”€β”€ eba.py, esma.py, cert_eu.py, cisa_kev.py,
-    β”‚       eiopa.py, ec_digital.py, edpb.py, ncsc_uk.py
+    β”‚       eiopa.py, ec_digital.py, edpb.py,
+    │       ncsc_uk.py, ecb_ssm.py
     β”β”€β”€ run.py                    # run all collectors, report health
     β”β”€β”€ triage.py                 # AI triage, validation, run log
     β”β”€β”€ triage_prompt.md          # approved prompt template
