@@ -1,4 +1,4 @@
-# Finalogic Intelligence Pipeline
+﻿# Finalogic Intelligence Pipeline
 
 Structured regulatory and cybersecurity intelligence for Finalogic Ltd. The
 pipeline monitors official sources, triages each item with AI against a
@@ -73,6 +73,16 @@ Sources (Wave 1):
 | CERT-EU | RSS | CERT-EU security advisories |
 | CISA KEV | JSON | CISA Known Exploited Vulnerabilities catalog |
 
+Wave 2 expansion (Phase 6, D-029), added as each feed is verified:
+
+| Source | Type | Feed |
+|--------|------|------|
+| EIOPA | RSS | European Insurance and Occupational Pensions Authority news |
+| EC_DIGITAL | RSS | European Commission, Shaping Europe's Digital Future (AI Act and digital policy) |
+| EDPB | RSS | European Data Protection Board |
+| NCSC_UK | RSS | UK National Cyber Security Centre news and alerts |
+| ECB_SSM | RSS | ECB banking supervision (SSM) press releases and speeches |
+
 Health checks make zero-item runs visible and fail the job, so a silently broken
 feed is caught rather than passing as a quiet no-op.
 
@@ -115,6 +125,14 @@ Raw collection columns are never altered by triage. Two logs are written:
 | `logs/triage_items.jsonl` | What was decided, about which document? One line per item, **with the source URL**, so any tag, level, or summary can be checked against the published page that produced it. |
 
 ### Stage 3: Human review (`src/notion_sync.py`)
+
+`sync-schema` reconciles an existing board with the source register and the
+locked taxonomy. `build_schema` runs only at creation, so a board created before
+a source or tag existed does not carry it, and pushing an item whose `Source`
+option is absent would depend on Notion silently creating it. It is additive
+like `src/migrate.py`: options are added, never renamed or removed, and an
+option on the board the schema does not know about is reported and left alone.
+`--dry-run` reports without writing. Run it after adding a source.
 
 `push` creates one Notion page per newly triaged item. Reviewers set `Status`
 (New / Reviewed / Published / Discarded) and may change `Level`. `pull` reads
@@ -214,53 +232,55 @@ Written by `src/matching.py`. One row per approved item / client pair:
 
 ```
 .
-├── README.md                     # this file
-├── CLAUDE.md                     # working context for Claude Code sessions
-├── requirements.txt
-├── .env.example                  # copy to .env; secrets go here (gitignored)
-├── finalogic.db                  # SQLite system of record (committed, D-008)
-├── .github/workflows/collect.yml # daily collection on GitHub Actions
-├── config/
-│   ├── clients.yaml              # client register (interest profiles)
-│   └── distribution.yaml         # which channel digests are delivered on
-├── data/                         # delivered digests (gitignored, D-024)
-├── docs/
-│   ├── DECISIONS.md              # decision log (D-001..; locked choices)
-│   ├── ROADMAP.md                # phased build plan and status
-│   ├── taxonomy-v1.0.md          # controlled tag vocabulary (locked)
-│   ├── scoring-criteria.md       # relevance and urgency rules (locked)
-│   ├── finalogic-source-register.md
-│   ├── feed-verification.md
-│   └── phase3-*.md, phase5-*.md
-├── logs/
-│   ├── triage_runs.jsonl         # per-run counts, tokens, cost
-│   ├── triage_items.jsonl        # per-item decisions WITH the source URL (audit trail)
-│   └── demo_items.jsonl          # demo output only (gitignored, truncated each run)
-├── tests/                        # pytest: run `pytest` from the repo root
-│   ├── conftest.py               # temporary database, never finalogic.db
-│   ├── test_matching.py          # the matching rule: overlap, level gate, scoring
-│   ├── test_triage_validation.py # model output validation
-│   ├── test_taxonomy.py          # the taxonomy parser
-│   └── test_distribution.py      # the human gate and the idempotency guard
-└── src/
-    ├── db.py                     # SQLite schema and item insert
-    ├── migrate.py                # additive triage-column migration
-    ├── sources.py                # verified feed URLs
-    ├── llm.py                    # THE ONLY model-aware code. Swap providers here.
-    ├── pipeline.py               # full-cycle orchestrator, with --dry-run
-    ├── demo.py                   # one-command live demo of the whole cycle
-    ├── collectors/               # INTAKE plugins, one per source
-    │   ├── base.py               # shared RSS fetch, logging, timestamps
-    │   └── eba.py, esma.py, cert_eu.py, cisa_kev.py
-    ├── run.py                    # run all collectors, report health
-    ├── triage.py                 # AI triage, validation, run log
-    ├── triage_prompt.md          # approved prompt template
-    ├── notion_sync.py            # Notion push and pull, override logging
-    ├── clients.py                # client register seeding and validation
-    ├── matching.py               # deterministic client matching engine
-    └── distribute/               # OUTPUT plugins, one per channel
-        ├── digest.py             # per-client Markdown digest from the ledger
-        └── channels.py           # file, console (email deferred to Phase 7)
+β”β”€β”€ README.md                     # this file
+β”β”€β”€ CLAUDE.md                     # working context for Claude Code sessions
+β”β”€β”€ requirements.txt
+β”β”€β”€ .env.example                  # copy to .env; secrets go here (gitignored)
+β”β”€β”€ finalogic.db                  # SQLite system of record (committed, D-008)
+β”β”€β”€ .github/workflows/collect.yml # daily collection on GitHub Actions
+β”β”€β”€ config/
+β”‚   β”β”€β”€ clients.yaml              # client register (interest profiles)
+β”‚   β””β”€β”€ distribution.yaml         # which channel digests are delivered on
+β”β”€β”€ data/                         # delivered digests (gitignored, D-024)
+β”β”€β”€ docs/
+β”‚   β”β”€β”€ DECISIONS.md              # decision log (D-001..; locked choices)
+β”‚   β”β”€β”€ ROADMAP.md                # phased build plan and status
+β”‚   β”β”€β”€ taxonomy-v1.0.md          # controlled tag vocabulary (locked)
+β”‚   β”β”€β”€ scoring-criteria.md       # relevance and urgency rules (locked)
+β”‚   β”β”€β”€ finalogic-source-register.md
+β”‚   β”β”€β”€ feed-verification.md
+β”‚   β””β”€β”€ phase3-*.md, phase5-*.md
+β”β”€β”€ logs/
+β”‚   β”β”€β”€ triage_runs.jsonl         # per-run counts, tokens, cost
+β”‚   β”β”€β”€ triage_items.jsonl        # per-item decisions WITH the source URL (audit trail)
+β”‚   β””β”€β”€ demo_items.jsonl          # demo output only (gitignored, truncated each run)
+β”β”€β”€ tests/                        # pytest: run `pytest` from the repo root
+β”‚   β”β”€β”€ conftest.py               # temporary database, never finalogic.db
+β”‚   β”β”€β”€ test_matching.py          # the matching rule: overlap, level gate, scoring
+β”‚   β”β”€β”€ test_triage_validation.py # model output validation
+β”‚   β”β”€β”€ test_taxonomy.py          # the taxonomy parser
+β”‚   β””β”€β”€ test_distribution.py      # the human gate and the idempotency guard
+β””β”€β”€ src/
+    β”β”€β”€ db.py                     # SQLite schema and item insert
+    β”β”€β”€ migrate.py                # additive triage-column migration
+    β”β”€β”€ sources.py                # verified feed URLs
+    β”β”€β”€ llm.py                    # THE ONLY model-aware code. Swap providers here.
+    β”β”€β”€ pipeline.py               # full-cycle orchestrator, with --dry-run
+    β”β”€β”€ demo.py                   # one-command live demo of the whole cycle
+    β”β”€β”€ collectors/               # INTAKE plugins, one per source
+    β”‚   β”β”€β”€ base.py               # shared RSS fetch, logging, timestamps
+    β”‚   β””β”€β”€ eba.py, esma.py, cert_eu.py, cisa_kev.py,
+    β”‚       eiopa.py, ec_digital.py, edpb.py,
+    │       ncsc_uk.py, ecb_ssm.py
+    β”β”€β”€ run.py                    # run all collectors, report health
+    β”β”€β”€ triage.py                 # AI triage, validation, run log
+    β”β”€β”€ triage_prompt.md          # approved prompt template
+    β”β”€β”€ notion_sync.py            # Notion push and pull, override logging
+    β”β”€β”€ clients.py                # client register seeding and validation
+    β”β”€β”€ matching.py               # deterministic client matching engine
+    β””β”€β”€ distribute/               # OUTPUT plugins, one per channel
+        β”β”€β”€ digest.py             # per-client Markdown digest from the ledger
+        β””β”€β”€ channels.py           # file, console (email deferred to Phase 7)
 ```
 
 The shape is symmetric. `collectors/` are intake plugins, `distribute/` are
@@ -302,8 +322,11 @@ nothing is seeded, so a client profile can never drift from the taxonomy.
 
 An item matches a client when both hold:
 
-1. **Overlap**: the item shares at least one sector, jurisdiction, or theme with
-   the client profile.
+1. **Overlap**: the item shares at least one **sector or theme** with the client
+   profile. Jurisdiction alone is not enough (D-028): nearly every item and
+   client is EU, so matching on jurisdiction by itself routed every EU item to
+   every EU client. A shared jurisdiction still boosts the score and is named in
+   the match reason when a real sector or theme overlap exists.
 2. **Level gate**: the item's level is at least as urgent as the client's
    `min_level`, where Urgent > High > Standard > Low. A client on `Standard`
    receives Urgent, High, and Standard items, but not Low.
@@ -317,7 +340,10 @@ score = 3.0 * (shared jurisdictions)
       + 1.0 * (shared themes)
 ```
 
-Weights are constants at the top of `src/matching.py`.
+Weights are constants at the top of `src/matching.py`. Jurisdiction keeps the
+highest weight because it still routes same-jurisdiction items more strongly and
+will prioritise Cyprus items once the Cyprus sources land; it just no longer
+matches on its own.
 
 ### The human gate is enforced
 
@@ -408,10 +434,12 @@ Run the stages in order. Each stage is idempotent and safe to re-run.
 python -m src.run
 
 # 2. Triage untriaged items
-python -m src.triage run                 # add --limit N to bound a run
-python -m src.triage run --dry-run       # build prompts, no API calls, no writes
+python -m src.triage                     # add --limit N to bound a run
+python -m src.triage --dry-run           # build prompts, no API calls, no writes
+python -m src.triage --source EIOPA --limit 3   # shake down one source (repeatable flag)
 
 # 3. Human review
+python -m src.notion_sync sync-schema    # add new sources/tags to an existing board
 python -m src.notion_sync push           # create pages for newly triaged items
 #    ... reviewers set Status and Level in Notion ...
 python -m src.notion_sync pull           # read Status/Level back, log overrides
@@ -538,11 +566,11 @@ require human input), so they are not on the daily schedule.
 ## 12. Known limitations and next steps
 
 - **Database in git**: `finalogic.db` is committed and rewritten by the daily
-  Action. This is fine at proof-of-concept scale (decision D-008), but before a
-  client-facing launch it should move to a hosted database. The git history
-  bloats with a daily binary blob, and a scheduled run overlapping a manual
-  dispatch could race on `git push`. This is proposed D-025, to be decided before
-  Phase 6, when Wave 2 raises both the write rate and the file size.
+  Action. Decided for the PoC (D-025, 2026-07-16): it stays in git, with the
+  workflow serialised by a concurrency group and a pre-push rebase so runs
+  cannot race. The git history still bloats with a daily binary blob; before a
+  client-facing launch the file should move to hosted SQLite (Turso or
+  Litestream). D-008 is unchanged: SQLite remains the system of record.
 - **The clients are examples**: every entry in `config/clients.yaml` is a
   placeholder. Nothing can reach a real recipient until they are replaced, which
   is deliberate.
@@ -565,7 +593,7 @@ require human input), so they are not on the daily schedule.
 | 3 | AI triage, taxonomy, scoring, Notion review, overrides | Done |
 | 4 | Client matching (register, profiles, deterministic engine) | Done |
 | 5 | Distribution (digests, channels, orchestrator, tests) | Done |
-| 6 | Coverage expansion (Wave 2 sources, threshold tuning) | Next |
+| 6 | Coverage expansion (Wave 2 scrapers plus four RSS additions, D-029; threshold tuning) | In progress |
 | 7 | White-label (email via SendGrid, branded templates) | Planned |
 
 Phases were renumbered on 2026-07-14 (D-023): distribution took Phase 5, so

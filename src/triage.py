@@ -28,6 +28,7 @@ from dotenv import load_dotenv
 
 from src import db, llm, migrate
 from src.collectors.base import logger
+from src.sources import SOURCES
 
 # Request settings (D-015, D-016, D-026). One call per item, no batching, no
 # caching, no KEV pre-filter. The model itself is configured in the environment
@@ -632,7 +633,12 @@ def print_report(report: RunReport) -> None:
             print(f"  {line}")
 
 
-def run(limit: int | None = None, dry_run: bool = False, run_type: str = "full") -> int:
+def run(
+    limit: int | None = None,
+    dry_run: bool = False,
+    run_type: str = "full",
+    sources: tuple[str, ...] | None = None,
+) -> int:
     load_dotenv()
 
     template = load_prompt_template()
@@ -645,6 +651,19 @@ def run(limit: int | None = None, dry_run: bool = False, run_type: str = "full")
     migrate.migrate(conn)
 
     items = list(conn.execute(ELIGIBLE_SQL))
+    if sources:
+        # Eligibility is unchanged; this only narrows which eligible items are
+        # offered, so a new source can be shaken down without draining the
+        # backlog. An unknown name fails loudly rather than triaging nothing.
+        unknown = sorted(set(sources) - set(SOURCES))
+        if unknown:
+            logger.error("unknown source(s): %s", ", ".join(unknown))
+            logger.error("known sources: %s", ", ".join(sorted(SOURCES)))
+            conn.close()
+            return 1
+        items = [item for item in items if item["source"] in sources]
+        logger.info("source filter=%s, %d eligible items", ",".join(sources), len(items))
+
     report = RunReport(run_at=now_iso(), run_type=run_type, items_eligible=len(items))
     if limit is not None:
         items = items[:limit]
@@ -683,13 +702,25 @@ def main() -> int:
         help="fetch pages and build prompts, but make no API calls and write nothing",
     )
     parser.add_argument(
+        "--source",
+        action="append",
+        dest="sources",
+        metavar="NAME",
+        help="only triage items from this source (repeatable), e.g. --source EIOPA",
+    )
+    parser.add_argument(
         "--run-type",
         choices=RUN_TYPES,
         default="full",
         help="recorded in the run log so partial runs are not summed with full ones",
     )
     args = parser.parse_args()
-    return run(limit=args.limit, dry_run=args.dry_run, run_type=args.run_type)
+    return run(
+        limit=args.limit,
+        dry_run=args.dry_run,
+        run_type=args.run_type,
+        sources=tuple(args.sources) if args.sources else None,
+    )
 
 
 if __name__ == "__main__":

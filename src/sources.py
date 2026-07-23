@@ -1,9 +1,11 @@
-"""Verified Wave 1 feed URLs. See docs/feed-verification.md for evidence and dates.
+"""Verified feed URLs. See docs/feed-verification.md for evidence and dates.
 
 Update this file, not the individual collectors, when a feed URL changes.
 """
 
 SOURCES = {
+    # Wave 1
+
     "EBA": {
         "feed_url": "https://www.eba.europa.eu/news-press/news/rss.xml",
         "feed_type": "rss",
@@ -19,5 +21,36 @@ SOURCES = {
     "CISA_KEV": {
         "feed_url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
         "feed_type": "json",
+    },
+    # Wave 2 expansion (Phase 6, D-029)
+    "EIOPA": {
+        # Drupal node feed advertised by the RSS link on eiopa.europa.eu/media/news_en.
+        # The node id is the site's internal key: recheck if the feed starts 404ing.
+        "feed_url": "https://www.eiopa.europa.eu/node/4816/rss_en",
+        "feed_type": "rss",
+    },
+    "EC_DIGITAL": {
+        # Shaping Europe's Digital Future, site-wide. No AI-topic feed exists, so AI
+        # items are separated by tagging at triage, not at collection.
+        "feed_url": "https://digital-strategy.ec.europa.eu/en/rss.xml",
+        "feed_type": "rss",
+    },
+    "EDPB": {
+        # Site-wide feed: carries news alongside the occasional non-news page.
+        "feed_url": "https://www.edpb.europa.eu/rss.xml",
+        "feed_type": "rss",
+    },
+    "NCSC_UK": {
+        # News feed: the alerts and advisories stream. NCSC also publishes separate
+        # guidance, report, and blog feeds, out of scope as CERT-EU's are.
+        "feed_url": "https://www.ncsc.gov.uk/api/1/services/v1/news-rss-feed.xml",
+        "feed_type": "rss",
+    },
+    "ECB_SSM": {
+        # ECB banking supervision (the SSM), press stream: press releases, speeches,
+        # interviews. The separate publications feed at /rss/pub.html is a candidate.
+        # Not the main ECB site feed, which is monetary policy led (D-027).
+        "feed_url": "https://www.bankingsupervision.europa.eu/rss/press.html",
+        "feed_type": "rss",
     },
 }

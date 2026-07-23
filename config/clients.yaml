@@ -9,7 +9,10 @@
 # min_level "Standard" receives Urgent, High, and Standard items, but not Low.
 #
 # Matching rule (deterministic, no AI): an item matches a client when it shares at
-# least one sector, jurisdiction, or theme AND clears the client's min_level.
+# least one SECTOR or THEME AND clears the client's min_level. A shared jurisdiction
+# alone is not a match (D-028): nearly every item and client is EU, so jurisdiction
+# on its own routed everything to everyone. Jurisdiction still adds to the score and
+# is still named in the match reason when a sector or theme overlap exists.
 #
 # Edit this file, then run:  python -m src.clients seed
 
@@ -67,3 +70,21 @@ clients:
       - ICT third-party risk
       - Operational resilience
       - AML and financial crime
+
+  # Added with the Phase 6a RSS sources (D-029). The Insurance sector tag had no
+  # source feeding it until EIOPA landed, so this profile is what exercises it.
+  # Data protection and privacy is included to give EDPB items a route, and AI
+  # regulation to give the Commission AI items one.
+  - name: Insurance (example)
+    active: true
+    min_level: Standard
+    sectors:
+      - Insurance
+    jurisdictions:
+      - EU
+      - Cyprus
+    themes:
+      - DORA
+      - Operational resilience
+      - Data protection and privacy
+      - AI regulation

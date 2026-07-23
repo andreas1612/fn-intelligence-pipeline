@@ -5,6 +5,12 @@ Matches triaged items to clients by comparing each item's taxonomy tags
 (config/clients.yaml, seeded via src.clients). Fully deterministic: no LLM and
 no invented data. Every match records exactly why it matched.
 
+Relevance rule (D-028): an item matches a client only if they share at least one
+sector or theme. A shared jurisdiction alone is not a match, because nearly every
+item and every client is EU, so jurisdiction-only overlap routed every EU item to
+every EU client. Jurisdiction still boosts the score of an item that already
+matches on a sector or theme, and is still named in the reason.
+
 Product rule: only human-reviewed items reach clients. By default matching runs
 over items with review_status in ('Reviewed', 'Published'), consistent with the
 human gate (D-018). Use `preview` to match every triaged item regardless of
@@ -120,12 +126,17 @@ def _level_ok(item_level, min_level) -> bool:
 
 
 def score_match(item_sectors, item_jurisdictions, item_themes, client):
-    """Return (score, matched_on) for an item against a client, or None if no overlap."""
+    """Return (score, matched_on) for an item against a client, or None if the
+    item shares no sector or theme with the client."""
     shared_j = sorted(item_jurisdictions & client["jurisdictions"])
     shared_s = sorted(item_sectors & client["sectors"])
     shared_t = sorted(item_themes & client["themes"])
 
-    if not (shared_j or shared_s or shared_t):
+    # Relevance requires a shared sector or theme (D-028). Jurisdiction alone is
+    # not enough: almost every item and client is EU, so a jurisdiction-only rule
+    # sent every EU item to every EU client. A shared jurisdiction still adds to
+    # the score below and is named in matched_on when a real match exists.
+    if not (shared_s or shared_t):
         return None
 
     score = (

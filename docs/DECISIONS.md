@@ -1,4 +1,4 @@
-# Decision Log
+﻿# Decision Log
 
 Locked decisions with rationale. Propose changes as new dated entries, do not edit history.
 
@@ -159,12 +159,13 @@ Recorded retrospectively. Phase 4 built the matching layer; this entry states th
 **Tests** (`tests/`, pytest): Cover the matching rule, triage output validation, the taxonomy parser, and the human gate plus idempotency. These are the places where a regression is silent: it shows up as an unreviewed item in a client's inbox or a digest sent twice, not as an error. Tests run against a temporary database built by the real schema code, never against `finalogic.db`. pytest is the only new dependency and ships nothing to production.
 **D-021 defect 2 closed here**: The pending validator fix was applied. `rules_applied` now accepts only `^(AD|U|H|W|S|L)-\d+$` and `flag_rules` is validated separately as `^F-\d+$`. Prompt and validator now agree. Not a re-triage trigger: the 12 affected rows are all flagged, so a reviewer sees them, and the fix governs future runs.
 
-## D-025 (PROPOSED, not decided): Move the database off git (2026-07-14)
+## D-025: Database stays in git for the PoC, workflow serialised (2026-07-14, decided 2026-07-16)
 
 **Problem**: `finalogic.db` is a 1.1 MB SQLite binary committed to the repository and rewritten by the daily Action. It cannot be diffed or merged. Concurrent runs can race on push, and `.github/workflows/collect.yml` pushes without a pull or rebase, so a racing push simply loses. Every collection run adds a full copy of the file to git history.
 **Why it has not bitten yet**: Item volume is low and there is one operator. Wave 2 (Phase 6) adds five sources including scrapers, which raises both the write rate and the size.
-**Options, not yet weighed**: a hosted Postgres (Supabase, Neon); keeping SQLite but hosting the file (Litestream, Turso); or keeping the current design and serialising the workflow with a concurrency group, which fixes the race but not the diffing or the history bloat.
-**Status**: Open. To be decided before Phase 6 starts, per the roadmap. D-008 (SQLite as system of record) is not in question here; where the file lives is.
+**Options weighed**: a hosted Postgres (Supabase, Neon); keeping SQLite but hosting the file (Litestream, Turso); or keeping the current design and serialising the workflow with a concurrency group, which fixes the race but not the diffing or the history bloat.
+**Decision (2026-07-16)**: The database stays committed to git for the PoC. The race is fixed in the workflow: a concurrency group serialises collection runs, and the job rebases onto origin before pushing, so a non-conflicting remote change no longer loses the push. A rebase conflict on the binary fails the job loudly (per D-009) rather than losing data silently. History bloat and undiffability are accepted at PoC scale.
+**Revisit**: Before a client-facing launch, move the file to hosted SQLite (Turso, or Litestream to object storage). Postgres is not justified at this volume and would rewrite working code for no capability gain. D-008 is unchanged: SQLite remains the system of record; only where the file lives was in question. D-008 (SQLite as system of record) is not in question here; where the file lives is.
 
 ## D-026: Triage provider is kie.ai, not the Claude API. Supersedes D-003 and D-016 on model choice (2026-07-14)
 
@@ -185,11 +186,67 @@ Recorded retrospectively. Phase 4 built the matching layer; this entry states th
 
 **Reversal**: Set `KIE_MODEL` to another slug, or restore an Anthropic client in `src/llm.py`. Nothing above that file changes. That is the point of the structure.
 
+## D-027: ECB/SSM added to PoC scope, built after the Cyprus scrapers (2026-07-16)
+
+**Decision**: ECB/SSM joins the PoC source list as a scope addition beyond the locked Wave 2 list. It is built as an RSS collector in the existing Wave 1 pattern, sequenced after the CySEC and CBC scrapers.
+**Rationale**: Owner request. ECB/SSM is Tier 1 in the register (prudential supervision, cyber resilience expectations for significant institutions) and cheap to add if the RSS feed verifies. The Cyprus scrapers stay first: they are the commercial differentiator and the largest coverage gap, while ECB content partially overlaps what EBA and ESMA already provide.
+**Scope note**: D-010 ("build only Wave 1 and Wave 2") is amended by this entry, not broken ad hoc: the PoC list is now Wave 1, Wave 2, plus ECB/SSM. The register rule stands: the feed URL must be verified against the live site before the collector is coded.
+
+## D-028: Matching requires a shared sector or theme; jurisdiction alone is not a match (2026-07-20)
+
+**Decision**: An item matches a client only if they share at least one sector or theme tag. A shared jurisdiction on its own no longer creates a match. When a match already exists on a sector or theme, a shared jurisdiction still adds to the score and is still named in `matched_on`, so it remains a routing signal, just not a standalone reason. This supersedes the overlap clause of D-023 only; the level gate, the weights (jurisdiction 3, sector 2, theme 1), the "no AI in matching" rule, and the ledger design all stand.
+
+**Trigger**: The first full match run over the reviewed backlog produced 138 item-client pairs, most of them noise. In the Cyprus EMI digest, about 26 of 32 items matched on `jurisdiction: EU` and nothing else, including a run of CERT-EU vulnerability advisories the EMI profile never asked for (its themes are DORA, ICT incident reporting, Payments and e-money, AML and financial crime, with no cyber theme). Because nearly every item and every client is EU, jurisdiction-only overlap routed almost everything to almost everyone.
+
+**Rationale**: Jurisdiction is too broad to be a relevance signal by itself under the current source set. Sector and theme are what express a client's actual interest, so requiring one of them is the smallest change that removes the flood without touching the weights, the level gate, or the taxonomy. Jurisdiction keeps its scoring weight because it still routes same-jurisdiction items more strongly, and it is the mechanism that will prioritise Cyprus items over EU-wide ones once the Cyprus sources land (scoring W-2).
+
+**Effect**: Clients now receive only items sharing a sector or theme in their profile. A client that wants cyber advisories lists the relevant theme; one that does not no longer receives them. This does not fix CISA KEV per-CVE noise, which still reaches themed clients on the cyber theme and needs the client-relevant systems list (scoring section 12); that is a separate change.
+
+**Not a re-triage trigger**: Triage output is unchanged; only routing changes. The example-client match ledger was rebuilt under the new rule. No real client data exists yet, so nothing of value was rewritten.
+
+## D-029: Phase 6 scope expanded with four RSS sources, RSS before scrapers (2026-07-20)
+
+**Decision**: Phase 6 (coverage expansion) adds four RSS/API sources to the locked Wave 2 set, chosen for low build risk and for widening the sector, theme, and jurisdiction surface the filters are tested against:
+
+- **EIOPA** (RSS): the third ESA. Activates the Insurance sector tag, which no current source feeds.
+- **European Commission, Shaping Europe's Digital Future / AI** (RSS): raises volume on the AI regulation priority theme.
+- **EDPB** (RSS): feeds the Data protection and privacy theme, currently thin.
+- **NCSC UK** (RSS): adds cybersecurity volume beyond CERT-EU and KEV, and is the first routine International-jurisdiction source, which exercises D-028 (International items match on sector or theme, never on jurisdiction alone).
+
+These join the existing Phase 6 scope: the CySEC, CBC, and ENISA scrapers, European AI Office, EUR-Lex OJ, and ECB/SSM (D-027).
+
+**Build order**: RSS and API collectors first (EIOPA, EC AI, EDPB, NCSC UK, ECB), then the scrapers (CySEC, CBC, ENISA), then EUR-Lex and European AI Office. The RSS sources get item volume flowing for filter testing quickly; the scrapers carry the real build risk and the Cyprus differentiator and follow once the RSS pattern is re-proven at Wave 2. This revises the sequencing note in D-027: ECB was to follow the Cyprus scrapers, but as an RSS source it now sits in the RSS-first batch. The decision to include ECB stands; only its order changes.
+
+**Rationale**: The owner asked to widen scope so there are more items to test, filter, and learn from before the client-facing tuning work. RSS sources are the cheapest way to add that volume and diversity. All four are already in the source register, so traceability holds; none is a discovered or invented source.
+
+**No taxonomy or scoring change**: The new sources map onto existing tags (Insurance sector, AI regulation and Data protection and privacy themes, International jurisdiction, standard types). `taxonomy-v1.0.md` and `scoring-criteria.md` are unchanged. Client profiles may gain an Insurance example client to exercise the new sector, but that is example config, not a locked-document change.
+
+**Unchanged rules**: Every feed URL is verified live before its collector is coded (register convention); collectors follow the existing plugin pattern with per-source health checks; migrations stay additive; the database stays in git with the serialised workflow (D-025).
+
+**Parked by the same owner decision (2026-07-20)**, to be picked up after Phase 6 has produced volume: the client-relevant systems list (KEV noise filter and strict Urgent, scoring section 12); Type-based filtering in matching and client profiles; and Notion review views grouped by Type.
+
+## D-030: Phase 6a feed scope, where a source publishes more than one feed (2026-07-21)
+
+**Decision**: Where a Phase 6a source publishes several feeds, the collector takes one of them, and the choice is recorded with live evidence in `docs/feed-verification.md`. Three sources needed this call:
+
+- **NCSC UK**: the News feed (`/api/1/services/v1/news-rss-feed.xml`), which is the alerts and advisories stream. Not the feed named "All": despite the name it carried 13 blog posts and 7 news items with no guidance and no reports. Not Guidance or Threat Reports either: both are valid feeds but slow moving, newest entries 2026-03 and 2025-05 at time of check, so adding them would mostly import an ageing backlog.
+- **ECB / SSM**: the banking supervision press feed (`bankingsupervision.europa.eu/rss/press.html`). Not the main ECB feed, which is monetary-policy led and outside the client base. D-027 scopes this source to prudential supervision and cyber resilience expectations, and the supervision site is the SSM.
+- **European Commission and EDPB**: the site-wide feeds, because no narrower feed exists. Candidate topic paths were tried and returned HTML with zero entries, not feeds.
+
+**Rationale**: This follows the CERT-EU precedent set in Wave 1, where the collector deliberately takes the Security Advisories feed and other content types are out of scope. One feed per source keeps the plugin pattern unchanged and avoids inventing a multi-feed collector shape before there is a reason for one.
+
+**What this means for coverage**: The register's "Covers" column describes what a source publishes, not what the collector ingests. EBA and ESMA already worked this way. Where the collector takes less than the register describes, the gap is named in `docs/feed-verification.md` rather than left implicit.
+
+**Revisit**: The named candidates are the NCSC Guidance and Threat Report feeds, and the ECB banking supervision publications feed (`/rss/pub.html`), which carries the substantive supervisory guides such as the ICAAP and EGMA guides. Any of them can be added later as its own source key without touching the existing collectors.
+
+**No taxonomy or scoring change**: The sample triaged on 2026-07-21 returned in-taxonomy tags on the first attempt for all 15 items. The Insurance sector and International jurisdiction tags fired for the first time, and D-028 held with no jurisdiction-only matches.
 ## Open items
 
 - TBD: MiCA theme tag. Deferred until item volume justifies it (see taxonomy section 9).
 - Notion workspace structure: resolved by D-018.
 - TBD: Urgent alert delivery channel. Partly addressed by D-024: the channel interface exists and file and console are built. What is still open is whether Urgent items get their own immediate path rather than waiting for the next digest. Needs the email channel first (Phase 7).
 - TBD: U-1 reference list of client-relevant systems (see scoring criteria section 12). Still the proper fix for D-020.
-- OPEN: D-025, move the database off git. To be decided before Phase 6.
+- RESOLVED 2026-07-16: D-025 decided. The database stays in git for the PoC with the collection workflow serialised; hosted SQLite is the pre-launch revisit.
 - TBD: Replace the example clients in `config/clients.yaml` with real ones. Nothing can be sent to a real recipient until this happens, which is deliberate.
+- TBD: The EIOPA feed URL uses an internal Drupal node id (`/node/4816/rss_en`), which is the URL EIOPA itself advertises but is not a stable public path. If it starts returning 404, re-read the RSS link on `eiopa.europa.eu/media/news_en` rather than guessing a replacement. The health check makes the failure visible (D-009).
+- TBD: EIOPA items are landing on the catch-all theme "Other financial regulation", because the theme vocabulary is ICT and cyber centric and insurance-prudential content (Solvency II, IRRD) has nowhere better to sit. Watch before proposing anything: repeated catch-all use is the taxonomy's own stated change trigger (taxonomy section 8). Not acted on, since the taxonomy is locked.

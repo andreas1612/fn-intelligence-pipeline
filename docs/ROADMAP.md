@@ -1,6 +1,6 @@
-# Roadmap and Status
+﻿# Roadmap and Status
 
-Last updated: 2026-07-14
+Last updated: 2026-07-22
 
 ## Phase numbering note (D-023)
 
@@ -57,13 +57,51 @@ Design approved 2026-07-09 (D-016 to D-018). Build spec: `docs/phase3-build-spec
 - [x] First test suite: matching rule, triage validation, taxonomy parser, human gate (`tests/`)
 - [x] Design recorded (D-023, D-024)
 
-## Phase 6: Coverage expansion [NEXT]
+## Phase 6: Coverage expansion [IN PROGRESS]
 
-- [ ] PoC Wave 2: CySEC scraper, CBC scraper, European AI Office, EUR-Lex OJ, ENISA scraper (D-012)
-- [ ] Remaining Tier 1 sources onboarded per register priority
-- [ ] Tier 2 sources onboarded selectively
-- [ ] Scoring thresholds tuned from the override log (this is the "Phase 5 tuning" referred to in D-018 and D-020)
-- [ ] Resolve the database-in-git problem before source volume grows (proposed D-025)
+Scope expanded on 2026-07-20 (D-029): four RSS sources added and a build order set,
+RSS before scrapers. See D-029 for the source list and rationale.
+
+Done:
+
+- [x] Database-in-git resolved before source volume grows (D-025: stays in git for the PoC, workflow serialised with a concurrency group and pre-push rebase)
+- [x] Matching relevance tightened: a shared sector or theme is required, jurisdiction is a booster not a standalone match (D-028)
+
+6a. RSS and API collectors first (low build risk, fast volume). Verify each feed live
+before coding. [COMPLETE 2026-07-21] All five built, verified, and registered. Nine
+sources now collect green in one run. Feed evidence, including the candidates that
+were rejected and why, is in `docs/feed-verification.md`; the feed-scope choices are
+D-030. A 15-item sample (3 per new source) was triaged: 0 invalid outputs, the
+Insurance sector and International jurisdiction tags fired for the first time, and
+D-028 held with zero jurisdiction-only matches.
+
+- [x] EIOPA (RSS) - the third ESA; activates the Insurance sector tag (`src/collectors/eiopa.py`; feed verified 2026-07-21, 30 items on first run, dedup confirmed on re-run)
+- [x] European Commission, AI / Shaping Europe's Digital Future (RSS) - AI regulation theme volume (`src/collectors/ec_digital.py`; feed verified 2026-07-21, site-wide feed, no AI-only feed exists, 10 items on first run, dedup confirmed)
+- [x] EDPB (RSS) - Data protection and privacy theme (`src/collectors/edpb.py`; feed verified 2026-07-21, 10 items on first run, dedup confirmed)
+- [x] NCSC UK (RSS) - cyber volume beyond CERT-EU and KEV; first International-jurisdiction source (`src/collectors/ncsc_uk.py`; feed verified 2026-07-21 from the NCSC feeds page, News feed chosen over All/Guidance/Report/Blog, 20 items on first run, dedup confirmed)
+- [x] ECB / SSM (RSS) - prudential supervision, cyber resilience expectations (D-027) (`src/collectors/ecb_ssm.py`; feed verified 2026-07-21 from the SSM RSS index, supervision press feed not the monetary-policy-led main ECB feed, 15 items on first run, dedup confirmed)
+
+6b. Scrapers (the Cyprus differentiator and the real build risk):
+
+- [ ] CySEC scraper - first scraper
+- [ ] CBC scraper
+- [ ] ENISA scraper (RSS/API feed discontinued, D-012)
+
+6c. Structured legal and AI sources:
+
+- [ ] EUR-Lex / Official Journal (API or email alerts)
+- [ ] European AI Office (RSS or scrape)
+
+Then:
+
+- [ ] Scoring thresholds tuned from the override log (the "Phase 5 tuning" of D-018 and D-020; needs a one-model re-triage first, per D-026 risk 3)
+- [ ] Remaining Tier 1 and selected Tier 2 sources per register priority
+
+Parked until Phase 6 volume exists (owner decision 2026-07-20, D-029):
+
+- Client-relevant systems list (KEV noise filter and strict Urgent, scoring section 12)
+- Type-based filtering in matching and client profiles
+- Notion review views grouped by Type
 
 ## Phase 7: White-label
 
