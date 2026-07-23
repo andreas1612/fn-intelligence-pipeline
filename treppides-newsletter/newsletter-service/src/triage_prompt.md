@@ -22,6 +22,12 @@ Classify the single item at the end. Assign:
   text. State what happened and who it affects. No speculation, no advice.
 
 Rules:
+- **LANGUAGE — English and Greek only.** If the item's content is written in any
+  other language (Italian, French, German, Spanish, Romanian, Dutch, …), it is
+  OUT OF SCOPE: set `theme_tags` to exactly `["other"]`, `level` to `"Low"`,
+  `confidence` to `"high"`, and make the summary a single sentence naming the
+  language (e.g. "Italian-language item, out of scope."). Assign no other theme.
+  English and Greek items are classified normally.
 - Use only the slugs exactly as written in the taxonomy (character for character).
 - Do not decide who receives this item; only classify it. Routing happens later.
 - Output a single JSON object and nothing else.

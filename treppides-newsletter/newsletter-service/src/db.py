@@ -103,10 +103,8 @@ def init_db(conn: sqlite3.Connection) -> None:
 
 def insert_item(conn: sqlite3.Connection, item: dict) -> bool:
     """INSERT OR IGNORE by content_hash. Returns True if a new row was inserted.
-    Non-English/Greek items are dropped at the door (language gate)."""
-    from .lang import is_allowed
-    if not is_allowed(item.get("title", ""), item.get("summary", "")):
-        return False
+    Language scope (English/Greek only) is enforced at triage by the model, not
+    here (the AI judges language far more reliably than a heuristic)."""
     cur = conn.execute(
         """
         INSERT OR IGNORE INTO items
