@@ -1,8 +1,10 @@
 # Treppides Hub — Newsletter / Intelligence Feed
 
-> **Status:** Scoping / spec. No code yet.
-> **Owner:** Andreas Pieri
-> **Created:** 2026-07-23
+> **Status:** BUILT (standalone) — pre hub-integration. The full pipeline runs
+> end to end: **19 sources**, ~330+ items, AI triage, deterministic per-department
+> routing, and a web UI (department view + search/explore). Runs locally; not yet
+> wired into the hub. Service + how-to: [newsletter-service/README.md](newsletter-service/README.md).
+> **Owner:** Andreas Pieri · **Created:** 2026-07-23 · **Updated:** 2026-07-23
 > Companion docs: [taxonomy.md](taxonomy.md) · [departments.yaml](departments.yaml) · [sources.md](sources.md)
 
 ---
@@ -193,21 +195,22 @@ Tag axes (full definitions in [taxonomy.md](taxonomy.md)):
 
 ---
 
-## 6. Component checklist — exactly what gets built
+## 6. Component checklist — status
 
-| # | Deliverable | Reuse or new |
+| # | Deliverable | Status |
 |---|---|---|
-| 1 | **Treppides taxonomy** ([taxonomy.md](taxonomy.md)) | New (replaces Finalogic taxonomy) |
-| 2 | **Department interest map** ([departments.yaml](departments.yaml)) | New (replaces `clients.yaml`) |
-| 3 | **Source register** ([sources.md](sources.md)) — authorities + journals, categories, CySEC sections, feed/scrape | New |
-| 4 | Collectors for the registered sources (RSS where available, scrapers for CySEC/CBC/etc.) | Reuse pattern |
-| 5 | Triage against the Treppides taxonomy, autonomous, low-confidence → archived | Reuse engine |
-| 6 | Deterministic matcher: item tags → department profiles, records `matched_on`; journal cap + dedup | Reuse engine |
-| 7 | Store: SQLite items + tags + per-department routes | Reuse pattern |
-| 8 | **`newsletter-api`** FastAPI service exposing `GET /api/newsletter` (department-scoped, two categories) | New |
-| 9 | **Hub `newsletter` page** — two tabs (Authorities / Journals), department-scoped, matches hub styling | New |
-| 10 | nginx route + systemd unit + scheduled collection (cron / GitHub Action) | New (standard) |
-| 11 | Department resolution reused from `staff-directory` (refresh `departments.json` overrides) | Reuse + refresh |
+| 1 | **Treppides taxonomy** ([taxonomy.md](taxonomy.md)) — 25 themes incl. `payments` | ✅ Built |
+| 2 | **Department interest map** ([departments.yaml](departments.yaml)) | ✅ Built (Management/KT HK deferred) |
+| 3 | **Source register** ([sources.md](sources.md)) — authorities + journals, CySEC sections | ✅ Built |
+| 4 | Collectors — 15 RSS + 4 scrapers (CySEC/Tax Dept/CBC/Registrar); generic `html_list` scraper; dedup + health checks | ✅ Built (19 sources) |
+| 5 | Triage against the taxonomy, autonomous, article-body fetch, low-confidence → archived, EN/EL only | ✅ Built |
+| 6 | Deterministic matcher: themes → department profiles, `matched_on`, journal cap + dedup | ✅ Built |
+| 7 | Store: SQLite items + tags + routes + per-source high-water mark; additive migrations | ✅ Built |
+| 8 | FastAPI service: `/api/newsletter`, `/api/departments`, `/api/sources`, `/api/items` | ✅ Built |
+| 9 | Web page — department view (2 tabs) + Explore (search, source filter, cross-department), sort by date/urgency | ✅ Built (standalone; hub styling TBD) |
+| — | Logging (rotating) + nightly pipeline orchestrator (disabled by default) + scheduler script | ✅ Built |
+| 10 | nginx route + systemd unit + enable scheduled collection | 🔲 Pending (hub-integration) |
+| 11 | Department resolution from `staff-directory` `/api/me` (replace the dev dropdown) | 🔲 Pending (hub-integration) |
 
 ---
 
@@ -227,16 +230,25 @@ Tag axes (full definitions in [taxonomy.md](taxonomy.md)):
 
 ## 8. Open items / TBD
 
-- **`departments.json` refresh** — verify `email_overrides` and `aliases` against the
+Resolved during build: scrapers built (CySEC/Tax Dept/CBC/Registrar); model chosen
+(kie.ai gemini-3-5-flash, swappable via `src/llm.py`); source categories set;
+`payments` theme added; EN/EL language gate added.
+
+Still open:
+
+- **Hub integration** (§10 F2) — the main remaining work: resolve the caller's
+  department from `staff-directory` `/api/me`, mount in the hub, gate by tier, nginx
+  + enable the nightly schedule.
+- **`departments.json` refresh** — verify `email_overrides` / `aliases` against the
   live Azure roster before trusting department resolution.
-- **Scraper build risk** — CySEC, CBC, Tax Department, Registrar are scrape-only and
-  are the real effort. RSS sources (EU bodies, some journals) come first.
-- **Source category for professional bodies** (ICPAC, Accountancy Europe) — treated as
-  authority-adjacent; confirm they are not "journal."
-- **Deferred profiles** — **Management** (firm-wide digest) and **KT HK** (Hong Kong)
-  are omitted from v0.1; add once the core department feeds are proven.
-- **Model/provider** for triage — inherit the Finalogic pattern (one HTTP call behind a
-  swappable module); pick the model at build.
+- **JS-rendered sources** — MOKAS, ICPAC, Cyprus DPA, EUR-Lex, and CySEC's
+  Consultation Papers / Board & Court Decisions / Administrative Sanctions / Warnings
+  need a headless browser (Playwright) or an API. Deferred; a decision to add
+  Playwright would unlock all of them at once.
+- **Deferred profiles** — **Management** (firm-wide digest) and **KT HK** — add once
+  core feeds are signed off.
+- **CBC noise** — CBC has no topic filter; its statistics skew `economic-general`
+  (routes only to Administration). Optionally narrow later.
 
 ---
 
