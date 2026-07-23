@@ -1,0 +1,162 @@
+# Machine-readable source registry (verified live 2026-07-23).
+# category: authority | journal   (drives the two hub sections + urgency cap)
+# kind: rss (scrapers added in Phase F1)
+# Only feeds that resolved to valid RSS are enabled here. IFRS/OECD block bots
+# and need a browser UA or a scraper - deferred.
+#
+# Human-readable register with the full source list: ../../sources.md
+
+sources:
+  - key: cysec
+    name: CySEC
+    category: authority
+    kind: scrape
+    sections:
+      - url: https://www.cysec.gov.cy/en-GB/public-info/announcements/
+        pages: 2
+      - url: https://www.cysec.gov.cy/en-GB/public-info/circulars/general/
+        pages: 1
+      - url: https://www.cysec.gov.cy/en-GB/public-info/policy-statements/
+        pages: 1
+    # Useful but JS-rendered (no items in a plain GET) - need a headless browser:
+    #   Consultation Papers, Board Decisions, Administrative Sanctions, Court
+    #   Decisions, Warnings. Statistical Publications / Seminars / Certifications
+    #   and all of Regulated Entities + Regulatory Framework are static reference,
+    #   not news - intentionally excluded.
+
+  - key: cy_tax
+    name: Cyprus Tax Department
+    category: authority
+    kind: scrape
+    urls:
+      - https://www.mof.gov.cy/mof/tax/taxdep.nsf/page02_en/page02_en?opendocument
+
+  - key: cbc
+    name: Central Bank of Cyprus
+    category: authority
+    kind: scrape
+    scraper: html_list
+    url: https://www.centralbank.cy/en/announcements
+    verify: false
+    limit: 30
+    item_selector: "div.announcement-list:not(.displaymob)"
+    title_selector: "h5"
+    link_selector: "a"
+    date_selector: "span.date"
+    date_format: "%d %B %Y"
+
+  - key: registrar
+    name: Registrar of Companies
+    category: authority
+    kind: scrape
+    scraper: html_list
+    url: https://www.companies.gov.cy/en/news
+    verify: false
+    limit: 30
+    item_selector: "article.item-box"
+    title_selector: "h2 a"
+    link_selector: "h2 a"
+    date_attr_selector: "time"
+    summary_selector: "summary"
+    min_year: 2024
+
+  # Deferred scraper sources (need more than a plain GET, revisit later):
+  #  - MOKAS (FIU): returns an error/empty body to a plain GET (JS or blocked).
+  #  - ICPAC: homepage is JS-rendered; no static news listing found.
+  #  - Cyprus DPA (dataprotection.gov.cy): Domino views 500 on GET.
+  #  - EUR-Lex OJ: RSS paths return 0 entries; needs the OJ web-service/API.
+  # All would need a headless browser or a proper API integration.
+
+  - key: esma
+    name: ESMA
+    category: authority
+    kind: rss
+    url: https://www.esma.europa.eu/rss.xml
+
+  - key: eba
+    name: EBA
+    category: authority
+    kind: rss
+    url: https://www.eba.europa.eu/news-press/news/rss.xml
+
+  - key: edpb
+    name: EDPB
+    category: authority
+    kind: rss
+    url: https://www.edpb.europa.eu/rss.xml
+
+  - key: ec_digital
+    name: European Commission - Shaping Europe's Digital Future
+    category: authority
+    kind: rss
+    url: https://digital-strategy.ec.europa.eu/en/rss.xml
+
+  - key: eiopa
+    name: EIOPA
+    category: authority
+    kind: rss
+    url: https://www.eiopa.europa.eu/node/4816/rss_en
+
+  - key: ecb_ssm
+    name: ECB Banking Supervision (SSM)
+    category: authority
+    kind: rss
+    url: https://www.bankingsupervision.europa.eu/rss/press.html
+
+  - key: ncsc_uk
+    name: NCSC UK
+    category: authority
+    kind: rss
+    url: https://www.ncsc.gov.uk/api/1/services/v1/news-rss-feed.xml
+
+  - key: iaasb
+    name: IAASB (auditing standards)
+    category: authority
+    kind: rss
+    url: https://www.iaasb.org/rss.xml
+
+  - key: iesba
+    name: IESBA (ethics)
+    category: authority
+    kind: rss
+    url: https://www.ethicsboard.org/rss.xml
+
+  - key: ifac
+    name: IFAC
+    category: authority
+    kind: rss
+    url: https://www.ifac.org/rss.xml
+
+  - key: fsb
+    name: Financial Stability Board
+    category: authority
+    kind: rss
+    url: https://www.fsb.org/feed/
+
+  # IFRS (404 on guessed RSS path) and OECD Tax (403 even with a browser UA),
+  # plus tax journals (ITR/Tax Journal 404) need correct-feed discovery or a
+  # scraper - deferred.
+
+  - key: accountancy_europe
+    name: Accountancy Europe
+    category: journal
+    kind: rss
+    url: https://www.accountancyeurope.eu/feed/
+
+  - key: finance_magnates
+    name: Finance Magnates
+    category: journal
+    kind: rss
+    url: https://www.financemagnates.com/feed/
+
+  - key: accountancy_age
+    name: AccountancyAge
+    category: journal
+    kind: rss
+    url: https://www.accountancyage.com/feed/
+
+  - key: tax_foundation
+    name: Tax Foundation
+    category: journal
+    kind: rss
+    url: https://taxfoundation.org/feed/

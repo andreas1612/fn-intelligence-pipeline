@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Treppides Newsletter — standalone preview</title>
+<style>
+  :root { --bg:#f4f6f9; --card:#fff; --ink:#1a2330; --muted:#647089;
+          --line:#e2e7ee; --brand:#1f4e78; --accent:#2e7d32; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); }
+  header { background:var(--brand); color:#fff; padding:16px 24px; }
+  header h1 { margin:0; font-size:18px; font-weight:600; }
+  .modes { display:flex; gap:4px; padding:0 24px; background:var(--brand); }
+  .mode { padding:10px 18px; color:#cfe0f0; cursor:pointer; font-size:14px;
+          border-bottom:3px solid transparent; }
+  .mode.active { color:#fff; border-bottom-color:#fff; font-weight:600; }
+  .controls { display:flex; gap:14px; align-items:center; flex-wrap:wrap;
+              padding:14px 24px; background:var(--card); border-bottom:1px solid var(--line); }
+  label { font-size:13px; color:var(--muted); margin-right:6px; }
+  select, input[type=text] { padding:8px 10px; border:1px solid var(--line);
+           border-radius:8px; font-size:14px; background:#fff; }
+  input[type=text] { min-width:240px; }
+  .chk { font-size:13px; color:var(--ink); display:flex; align-items:center; gap:6px; }
+  .tabs { display:flex; gap:8px; padding:16px 24px 0; }
+  .tab { padding:8px 16px; border:1px solid var(--line); border-bottom:none;
+         border-radius:8px 8px 0 0; background:#eef1f6; cursor:pointer; font-size:14px; }
+  .tab.active { background:var(--card); font-weight:600; color:var(--brand); }
+  .tab .count { color:var(--muted); font-weight:400; }
+  main { padding:16px 24px 40px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:8px 0; }
+  .empty { padding:32px; text-align:center; color:var(--muted); }
+  .item { padding:16px 20px; border-bottom:1px solid var(--line); }
+  .item:last-child { border-bottom:none; }
+  .item h3 { margin:0 0 6px; font-size:15px; line-height:1.35; }
+  .item h3 a { color:var(--ink); text-decoration:none; }
+  .item h3 a:hover { color:var(--brand); text-decoration:underline; }
+  .meta { font-size:12px; color:var(--muted); margin-bottom:6px; display:flex;
+          gap:8px; flex-wrap:wrap; align-items:center; }
+  .badge { font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px; color:#fff; }
+  .Urgent{background:#c62828;} .High{background:#e8792b;} .Standard{background:#3a6ea5;} .Low{background:#8a94a6;}
+  .pill { font-size:11px; background:#eef1f6; color:#43506b; padding:2px 8px; border-radius:20px; }
+  .date { font-weight:600; color:#334; }
+  .deptcount { font-size:11px; font-weight:700; background:var(--accent); color:#fff; padding:2px 8px; border-radius:20px; }
+  .deptchip { font-size:11px; background:#e8f0e9; color:#2e5b34; border:1px solid #cfe3d3; padding:2px 8px; border-radius:6px; }
+  .depts { margin-bottom:6px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .why { font-size:12px; color:var(--accent); margin-bottom:6px; }
+  .summary { font-size:13px; color:#333; line-height:1.45; }
+  .hide { display:none; }
+</style>
+</head>
+<body>
+<header><h1>Treppides Newsletter</h1></header>
+<div class="modes">
+  <div class="mode active" data-mode="dept">Department view</div>
+  <div class="mode" data-mode="explore">Explore &amp; search</div>
+</div>
+
+<!-- DEPARTMENT VIEW -->
+<div id="view-dept">
+  <div class="controls">
+    <div><label for="dept">Department</label><select id="dept"></select></div>
+    <div><label for="sort">Sort</label>
+      <select id="sort">
+        <option value="newest" selected>Newest</option>
+        <option value="oldest">Oldest</option>
+        <option value="urgency">Urgency</option>
+      </select></div>
+    <div id="status" style="font-size:13px;color:var(--muted)"></div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-tab="authority">Regulatory Authorities <span class="count" id="c-auth"></span></div>
+    <div class="tab" data-tab="journal">Journals / Industry News <span class="count" id="c-journ"></span></div>
+  </div>
+  <main><div class="panel" id="panel"></div></main>
+</div>
+
+<!-- EXPLORE VIEW -->
+<div id="view-explore" class="hide">
+  <div class="controls">
+    <div><label for="q">Search</label><input type="text" id="q" placeholder="title, summary, theme… e.g. AML, VAT, MiCA" /></div>
+    <div><label for="src">Source</label><select id="src"></select></div>
+    <div><label for="ex-sort">Sort</label>
+      <select id="ex-sort">
+        <option value="cross" selected>Most cross-cutting</option>
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+        <option value="urgency">Urgency</option>
+      </select></div>
+    <label class="chk"><input type="checkbox" id="multi" /> Only 2+ departments</label>
+    <div id="ex-status" style="font-size:13px;color:var(--muted)"></div>
+  </div>
+  <main><div class="panel" id="ex-panel"></div></main>
+</div>
+
+<script>
+let DATA = { authority: [], journal: [] };
+let TAB = "authority";
+let EX = [];
+const LV = { Urgent:0, High:1, Standard:2, Low:3 };
+
+function sortItems(arr, mode) {
+  const a = [...arr];
+  if (mode === "newest") a.sort((x,y)=>(y.published_at||"0000").localeCompare(x.published_at||"0000"));
+  else if (mode === "oldest") a.sort((x,y)=>(x.published_at||"9999").localeCompare(y.published_at||"9999"));
+  else if (mode === "urgency") a.sort((x,y)=>(LV[x.level]??9)-(LV[y.level]??9));
+  else if (mode === "cross") a.sort((x,y)=>(y.dept_count||0)-(x.dept_count||0) || (LV[x.level]??9)-(LV[y.level]??9));
+  return a;
+}
+
+/* ---------- Department view ---------- */
+async function loadDepartments() {
+  const depts = await (await fetch("/api/departments")).json();
+  const sel = document.getElementById("dept");
+  sel.innerHTML = "";
+  depts.forEach(d => {
+    const o = document.createElement("option");
+    o.value = JSON.stringify([d.department, d.sub]);
+    o.textContent = d.sub ? `${d.department} — ${d.sub}` : d.department;
+    sel.appendChild(o);
+  });
+  sel.addEventListener("change", loadFeed);
+  await loadFeed();
+}
+async function loadFeed() {
+  const [department, sub] = JSON.parse(document.getElementById("dept").value);
+  document.getElementById("status").textContent = "Loading…";
+  DATA = await (await fetch(`/api/newsletter?department=${encodeURIComponent(department)}&sub=${encodeURIComponent(sub)}`)).json();
+  document.getElementById("c-auth").textContent = `(${DATA.authority.length})`;
+  document.getElementById("c-journ").textContent = `(${DATA.journal.length})`;
+  document.getElementById("status").textContent = `${DATA.authority.length + DATA.journal.length} items for this department`;
+  renderDept();
+}
+function renderDept() {
+  const items = sortItems(DATA[TAB] || [], document.getElementById("sort").value);
+  const panel = document.getElementById("panel");
+  panel.innerHTML = items.length ? items.map(itemCard).join("") : `<div class="empty">No items routed here yet.</div>`;
+}
+
+/* ---------- Explore view ---------- */
+async function loadSources() {
+  const srcs = await (await fetch("/api/sources")).json();
+  const sel = document.getElementById("src");
+  sel.innerHTML = `<option value="">All sources</option>`;
+  srcs.forEach(s => {
+    const o = document.createElement("option");
+    o.value = s.source;
+    o.textContent = `${s.source} (${s.source_category}, ${s.n})`;
+    sel.appendChild(o);
+  });
+}
+async function loadExplore() {
+  const q = document.getElementById("q").value.trim();
+  const src = document.getElementById("src").value;
+  const multi = document.getElementById("multi").checked ? 1 : 0;
+  document.getElementById("ex-status").textContent = "Loading…";
+  const res = await (await fetch(`/api/items?q=${encodeURIComponent(q)}&source=${encodeURIComponent(src)}&multi=${multi}`)).json();
+  EX = res.items;
+  document.getElementById("ex-status").textContent = `${res.count} item(s)` + (multi ? " in 2+ departments" : "");
+  renderExplore();
+}
+function renderExplore() {
+  const items = sortItems(EX, document.getElementById("ex-sort").value);
+  const panel = document.getElementById("ex-panel");
+  panel.innerHTML = items.length ? items.map(exploreCard).join("") : `<div class="empty">No matching items.</div>`;
+}
+
+/* ---------- shared rendering ---------- */
+function metaRow(it) {
+  return `<div class="meta">
+      <span class="badge ${it.level}">${it.level}</span>
+      <span class="date">${(it.published_at || "").slice(0,10) || "—"}</span>
+      <span class="pill">${it.source}</span>
+      <span class="pill">${it.jurisdiction || "?"}</span>
+      <span class="pill">${it.doc_type || ""}</span>
+    </div>`;
+}
+function itemCard(it) {
+  return `<div class="item">${metaRow(it)}
+    <h3><a href="${it.url}" target="_blank" rel="noopener">${esc(it.title)}</a></h3>
+    <div class="why">why here: ${esc(it.matched_on || "")} · themes: ${it.theme_tags.join(", ")}</div>
+    <div class="summary">${esc(it.ai_summary || "")}</div></div>`;
+}
+function exploreCard(it) {
+  const chips = it.departments.map(d => `<span class="deptchip">${esc(d)}</span>`).join("");
+  return `<div class="item">${metaRow(it)}
+    <div class="depts"><span class="deptcount">${it.dept_count} dept${it.dept_count>1?"s":""}</span>${chips}</div>
+    <h3><a href="${it.url}" target="_blank" rel="noopener">${esc(it.title)}</a></h3>
+    <div class="why">themes: ${it.theme_tags.join(", ")}</div>
+    <div class="summary">${esc(it.ai_summary || "")}</div></div>`;
+}
+function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
+/* ---------- wiring ---------- */
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+  t.classList.add("active"); TAB = t.dataset.tab; renderDept();
+}));
+document.querySelectorAll(".mode").forEach(m => m.addEventListener("click", () => {
+  document.querySelectorAll(".mode").forEach(x => x.classList.remove("active"));
+  m.classList.add("active");
+  const explore = m.dataset.mode === "explore";
+  document.getElementById("view-explore").classList.toggle("hide", !explore);
+  document.getElementById("view-dept").classList.toggle("hide", explore);
+  if (explore && !EX.length) loadExplore();
+}));
+document.getElementById("sort").addEventListener("change", renderDept);
+document.getElementById("ex-sort").addEventListener("change", renderExplore);
+let deb;
+document.getElementById("q").addEventListener("input", () => { clearTimeout(deb); deb = setTimeout(loadExplore, 300); });
+document.getElementById("src").addEventListener("change", loadExplore);
+document.getElementById("multi").addEventListener("change", loadExplore);
+
+loadDepartments();
+loadSources();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# The cloned Finalogic repo is its own upstream project - not part of this repo.
+fn-intelligence-pipeline/
+
+# Secrets and generated artifacts
+newsletter-service/.env
+newsletter-service/.venv/
+newsletter-service/data/
+newsletter-service/logs/*.jsonl
+
+# Python
+__pycache__/
+*.pyc
+
+# run transcripts
+newsletter-service/logs/*.log

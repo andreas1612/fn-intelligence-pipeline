@@ -1,0 +1,104 @@
+# Treppides Newsletter - Department interest profiles (draft v0.1)
+#
+# Replaces Finalogic's config/clients.yaml. Audience is INTERNAL departments, not
+# external clients. Each department receives items whose THEME tags overlap its
+# `themes` list AND whose urgency is >= `min_level`. Routing is theme-based only
+# (D-028): source and jurisdiction never route on their own.
+#
+# Department names MUST match the canonical list in
+# staff-directory/departments.json exactly. Sub-departments override the parent
+# where a narrower feed is wanted (e.g. Taxation -> VAT).
+#
+# Theme slugs are defined in taxonomy.md.
+# Parent spec: DELIVERABLE.md
+#
+# min_level: Urgent | High | Standard | Low   (Standard is the sensible default)
+# Journal items are capped below Urgent globally (see taxonomy.md s5), so a
+# department still receives journal awareness at High/Standard.
+
+defaults:
+  min_level: Standard
+  # Every department also implicitly receives firmwide 'economic-general' Highs.
+
+departments:
+
+  - name: Audit & Assurance
+    themes: [auditing-standards, audit-quality, ethics-independence, ifrs,
+             financial-reporting, aml-cft]
+    subdepartments:
+      Team GS: {}   # inherit parent
+      Team MX: {}
+      Team NK: {}
+      Team CC: {}
+
+  - name: Financial Controlling & Reporting
+    themes: [ifrs, financial-reporting, direct-tax, tax-administration]
+    subdepartments:
+      AV: {}
+
+  - name: Financial Reporting & Advisory
+    themes: [ifrs, financial-reporting, sustainability-reporting, direct-tax]
+    subdepartments:
+      AD: {}
+      PM: {}
+      AP: {}
+      NK: {}
+
+  - name: Taxation
+    themes: [direct-tax, vat, transfer-pricing, international-tax, tax-administration]
+    subdepartments:
+      VAT:
+        themes: [vat, tax-administration, international-tax]
+      Transfer Pricing:
+        themes: [transfer-pricing, international-tax, direct-tax]
+      GP:
+        themes: [direct-tax, tax-administration, international-tax]
+      MP:
+        themes: [direct-tax, tax-administration]
+
+  - name: ICAS
+    themes: [aml-cft, investment-firm-regulation, licensing-authorisation,
+             regulatory-compliance-risk, payments, fund-regulation]
+    subdepartments:
+      Assurance & Risk Advisory:
+        themes: [regulatory-compliance-risk, investment-firm-regulation, aml-cft]
+      Compliance:
+        themes: [aml-cft, regulatory-compliance-risk, investment-firm-regulation, payments]
+      Internal Audit:
+        themes: [regulatory-compliance-risk, auditing-standards, ethics-independence]
+      Licensing:
+        themes: [licensing-authorisation, investment-firm-regulation,
+                 fund-regulation, payments, aml-cft]
+
+  - name: Funds
+    themes: [fund-regulation, fund-administration, licensing-authorisation, aml-cft]
+
+  - name: Internal Compliance & Client Acceptance
+    themes: [aml-cft, regulatory-compliance-risk, payments, company-law]
+
+  - name: Technology
+    themes: [ict-operational-resilience, cybersecurity, data-protection, ai-regulation]
+
+  - name: Human Resources
+    themes: [employment-law, social-insurance-payroll]
+
+  - name: Payroll
+    themes: [social-insurance-payroll, employment-law, tax-administration]
+
+  - name: Internal Accounting
+    themes: [ifrs, financial-reporting, direct-tax, vat, tax-administration]
+
+  - name: Administration
+    themes: [company-law, registrar-filings, economic-general]
+
+  - name: Marketing
+    # Broad awareness; leans on the Journals section.
+    min_level: High
+    themes: [economic-general, licensing-authorisation, ai-regulation]
+
+# Deliberately omitted for now (v0.1): Management and KT HK. Add later once the
+# core departments are proven.
+
+# Unmapped: a person whose department does not resolve gets a firmwide 'High and
+# above' feed (never nothing), and the unresolved department is surfaced for the
+# departments.json refresh.
